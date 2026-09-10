@@ -25,7 +25,7 @@
   <section class="current"><div class="label">実行中</div><div id="currentTitle" class="title">待機中</div><div id="currentTime" class="time">--:--</div></section>
   <section class="add"><input id="newTitle" type="text" placeholder="タスクを追加" autocomplete="off"><input id="newEstimate" class="estimate" type="number" min="0" step="5" placeholder="見積 m"><button id="addTask" class="primary">追加</button></section>
   <div class="toolbar-wrap">
-    <div class="toolbar"><button id="todayBtn">今日</button><button id="carryBtn">前日の未完了を持越</button><button id="sectionBtn">セクション</button><button id="copyMdBtn">Markdownをコピー</button><button id="downloadMdBtn">.md保存</button><button id="importMdBtn">下のMarkdownを取込</button></div>
+    <div class="toolbar"><button id="todayBtn">今日</button><button id="carryBtn">前日の未完了を持越</button><button id="doneToggleBtn">完了を非表示</button><button id="sectionBtn">セクション</button><button id="copyMdBtn">Markdownをコピー</button><button id="downloadMdBtn">.md保存</button><button id="importMdBtn">下のMarkdownを取込</button></div>
     <div id="sectionMenu" class="section-menu" aria-label="セクション表示設定"></div>
   </div>
   <main id="tasks" class="tasks"></main>
@@ -37,11 +37,13 @@
 const STORAGE_PREFIX='taskliner_taskchute_line_v1:';
 const DOCUMENT_PREFIX='taskliner_taskchute_line_document_v1:';
 const HIDDEN_SECTIONS_KEY='taskliner_taskchute_line_hidden_sections_v1';
+const HIDE_DONE_KEY='taskliner_taskchute_line_hide_done_v1';
 const $=id=>document.getElementById(id);
 let activeDate=todayStr();
 let tasks=[];
 let documentNodes=[];
 let hiddenSections=loadHiddenSections();
+let hideDone=localStorage.getItem(HIDE_DONE_KEY)==='1';
 
 function pad(n){return String(n).padStart(2,'0')}
 function todayStr(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
@@ -92,15 +94,17 @@ function renderSectionMenu(){const menu=$('sectionMenu'),names=sectionNames(),hi
 function escapeHtml(s){return String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]))}
 function render(){
   $('dateBtn').innerHTML=`${activeDate}${activeDate===todayStr()?'<span class="today-mark">TODAY</span>':''}`;
+  $('doneToggleBtn').textContent=hideDone?'完了を表示':'完了を非表示';
   const root=$('tasks');root.innerHTML='';
   let visibleCount=0,currentSectionMarker=null,currentBlock=root;
   tasks.forEach((t,index)=>{
+    if(hideDone&&stateOf(t)==='done')return;
     if(t.section&&hiddenSections.has(t.section))return;
     if(t.section!==currentSectionMarker){currentSectionMarker=t.section;if(t.section){const block=document.createElement('section');block.className='section-block';const head=document.createElement('div');head.className='section-head';const title=document.createElement('div');title.className='section-title';title.textContent=t.section;const hide=document.createElement('button');hide.textContent='非表示';hide.onclick=()=>hideSection(t.section);head.append(title,hide);block.append(head);root.append(block);currentBlock=block}else{currentBlock=root}}
     currentBlock.append(createTaskRow(t,index));visibleCount++;
   });
   if(!tasks.length)root.innerHTML='<div class="empty">タスクはありません。上から追加するか、Markdownを取り込めます。</div>';
-  else if(!visibleCount)root.innerHTML='<div class="empty">すべてのセクションが非表示です。「セクション」から再表示できます。</div>';
+  else if(!visibleCount)root.innerHTML=hideDone?'<div class="empty">完了済みのタスクは非表示です。「完了を表示」で確認できます。</div>':'<div class="empty">表示対象のタスクがありません。セクション表示設定を確認してください。</div>';
   const done=tasks.filter(t=>stateOf(t)==='done').length,total=tasks.length,recorded=tasks.filter(t=>t.start&&t.end).reduce((a,t)=>a+(t.actualMin||elapsed(t.start,t.end)),0),remain=tasks.filter(t=>stateOf(t)!=='done'&&stateOf(t)!=='deferred').reduce((a,t)=>a+(Number(t.estimate)||0),0),running=tasks.find(t=>stateOf(t)==='running');
   $('doneCount').textContent=`${done}/${total}`;$('progressPct').textContent=total?`${Math.round(done/total*100)}%`:'0%';$('recordedMin').textContent=`${recorded}m`;$('remainingMin').textContent=`${remain}m`;$('currentTitle').textContent=running?running.title:'待機中';$('currentTime').textContent=running?`${running.start} → 実行中`:'--:--';$('markdownBox').value=exportMarkdown();renderSectionMenu();
 }
@@ -113,6 +117,7 @@ $('nextDay').onclick=()=>{activeDate=shiftDate(activeDate,1);load()};
 $('todayBtn').onclick=()=>{activeDate=todayStr();load()};
 $('dateBtn').onclick=()=>{const v=prompt('日付を YYYY-MM-DD で入力',activeDate);if(/^\d{4}-\d{2}-\d{2}$/.test(v||'')){activeDate=v;load()}};
 $('carryBtn').onclick=()=>{const prev=shiftDate(activeDate,-1),prevState=readStoredDate(prev),carry=prevState.tasks.filter(t=>stateOf(t)!=='done').map(t=>normalizeTask({...t,id:uid(),start:'',end:'',actualMin:0,completed:false,deferred:false,skipDate:''}));if(!carry.length){toast('持ち越すタスクはありません');return}for(const t of carry){tasks.push(t);insertTaskNode(t)}save();toast(`${carry.length}件を持ち越しました`)};
+$('doneToggleBtn').onclick=()=>{hideDone=!hideDone;localStorage.setItem(HIDE_DONE_KEY,hideDone?'1':'0');render();toast(hideDone?'完了済みタスクを非表示にしました':'完了済みタスクを表示しました')};
 $('sectionBtn').onclick=e=>{e.stopPropagation();$('sectionMenu').classList.toggle('open')};
 document.addEventListener('click',e=>{const menu=$('sectionMenu');if(!menu.contains(e.target)&&e.target!==$('sectionBtn'))menu.classList.remove('open')});
 $('copyMdBtn').onclick=async()=>{const text=exportMarkdown();try{await navigator.clipboard.writeText(text);toast('Markdownをコピーしました')}catch{$('markdownBox').value=text;$('markdownBox').select();document.execCommand('copy');toast('Markdownをコピーしました')}};
