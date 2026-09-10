@@ -11,41 +11,135 @@
     return;
   }
   try{
+    const THEME_KEY='taskliner_theme_v1';
+    const theme=localStorage.getItem(THEME_KEY)||'soft';
     const url=new URL('./app.html',window.location.href);
     url.searchParams.set('_v',String(Date.now()));
     const response=await fetch(url,{cache:'no-store'});
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     let html=await response.text();
 
-    html=html.replace(
-      "return s==='running'?'[/]':s==='done'?'[x]':s==='deferred'?'[>]':'[ ]'",
-      "return s==='running'?'●':s==='done'?'✓':s==='deferred'?'–':'○'"
-    );
+    if(theme==='terminal'){
+      const terminalStyle=`<style id="taskliner-terminal-theme">
+        :root{
+          --bg:#fff!important;
+          --panel:#fff!important;
+          --text:#111!important;
+          --muted:#555!important;
+          --line:#111!important;
+          --accent:#111!important;
+          --danger:#111!important;
+          --running:#f3f3f3!important;
+          --done:#fafafa!important;
+          --deferred:#fafafa!important;
+          --shadow:none!important;
+        }
+        html{color-scheme:light!important}
+        body{background:#fff!important;color:#111!important;letter-spacing:.005em}
+        .app{max-width:1180px!important;padding-top:8px!important}
+        .top{background:#fff!important;backdrop-filter:none!important;border-bottom:1px solid #111!important;padding-bottom:8px!important}
+        .brand{font-weight:800!important;letter-spacing:.04em!important}
+        .clock{font-weight:600!important}
+        button,input,textarea,.workspace,.task,.section-menu,.raw textarea,.task-more summary{
+          border-radius:0!important;
+          box-shadow:none!important;
+        }
+        .datebar button,.toolbar button,.task-actions button,.status-btn,.section-head button,.section-menu button,.current-end{
+          border-color:#111!important;
+          background:#fff!important;
+          color:#111!important;
+        }
+        .date-btn{font-weight:800!important}
+        .summary-line{color:#555!important}
+        .summary-line b{color:#111!important}
+        .workspace{border:1px solid #111!important;background:#fff!important}
+        .workspace .current{border-color:#111!important}
+        .current .label,.add-label{color:#111!important;text-transform:uppercase;letter-spacing:.08em!important}
+        .current-elapsed,.current .time{color:#444!important}
+        .add input{background:#fff!important;border-color:#111!important}
+        .primary{background:#111!important;color:#fff!important;border:1px solid #111!important}
+        .toolbar button.active{background:#111!important;color:#fff!important}
+        .task{border:1px solid #111!important;background:#fff!important}
+        .task.running{background:#f4f4f4!important;box-shadow:inset 4px 0 0 #111!important}
+        .task.done{background:#fafafa!important;opacity:.68!important}
+        .task.deferred{background:#fff!important;border-style:dashed!important}
+        .status-btn{border:0!important;background:transparent!important}
+        .task.running .status-btn,.task.done .status-btn{color:#111!important}
+        .task-meta{color:#555!important}
+        .task-actions .primary-action{border:1px solid #111!important;background:#111!important;color:#fff!important}
+        .task-actions .delete-action{color:#111!important}
+        .task-more summary{border-color:#111!important;background:#fff!important;color:#111!important}
+        .section-title{color:#111!important;text-transform:uppercase;letter-spacing:.06em!important}
+        .section-menu{border-color:#111!important}
+        .raw{border-color:#111!important}
+        .raw textarea{border-color:#111!important;background:#fff!important}
+        .empty{border-color:#111!important;border-radius:0!important}
+      </style>`;
+      html=html.replace('</head>',terminalStyle+'</head>');
+    }
 
-    const compactStyle=`<style id="taskliner-compact-top">
-      .top{padding:5px 0 7px!important}
-      .topline{min-height:30px!important}
-      .header-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;margin-top:4px!important}
-      .datebar{margin-top:0!important;gap:5px!important}
-      .datebar button{height:30px!important;padding:4px 8px!important}
-      .summary-line{margin-top:0!important;padding-left:0!important;gap:12px!important;justify-content:flex-end!important;font-size:10px!important}
-      .summary-line b{font-size:11px!important}
-      .workspace{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr)!important;gap:0!important;margin:4px 0 8px!important;background:var(--panel)!important;border:1px solid var(--line)!important;border-radius:12px!important;box-shadow:var(--shadow)!important;overflow:hidden!important}
-      .workspace .current,.workspace .add{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-      .workspace .current{padding:9px 11px!important;border-right:1px solid var(--line)!important}
-      .workspace .add{padding:9px 10px!important}
-      .current-main{margin-top:2px!important;gap:8px!important}
-      .current .title{font-size:15px!important}
-      .current-end{padding:5px 10px!important;font-size:11px!important}
-      .add-label{margin-bottom:4px!important}
-      @media(max-width:720px){
-        .header-row{align-items:flex-start!important;flex-direction:column!important;gap:5px!important}
-        .summary-line{justify-content:flex-start!important}
-        .workspace{grid-template-columns:1fr!important}
-        .workspace .current{border-right:0!important;border-bottom:1px solid var(--line)!important}
-      }
-    </style>`;
-    html=html.replace('</head>',compactStyle+'</head>');
+    const bridgeScript=`<script id="taskliner-theme-bridge">
+      (()=>{
+        const THEME_KEY='taskliner_theme_v1';
+        const theme=localStorage.getItem(THEME_KEY)||'soft';
+        try{
+          const pd=window.parent.document;
+          pd.documentElement.classList.toggle('taskliner-terminal',theme==='terminal');
+
+          if(!pd.getElementById('taskliner-parent-theme-style')){
+            const style=pd.createElement('style');
+            style.id='taskliner-parent-theme-style';
+            style.textContent=\`
+              .taskliner-theme-settings{margin:0 0 14px;padding:0 0 13px;border-bottom:1px solid #eceeea}
+              .taskliner-theme-choice{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+              .taskliner-theme-choice button{border:1px solid #d9ddd7;background:#f7f8f5;color:#20211f;border-radius:9px;padding:9px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+              .taskliner-theme-choice button.active{background:#20211f;color:#fff;border-color:#20211f}
+              .taskliner-theme-note{margin-top:6px;color:#777d75;font-size:10px;line-height:1.45}
+              html.taskliner-terminal,html.taskliner-terminal body{background:#fff!important;color:#111!important}
+              html.taskliner-terminal .sync-open,html.taskliner-terminal .quick-save,html.taskliner-terminal .auto-save-state,html.taskliner-terminal .sync-panel,html.taskliner-terminal .sync-field input,html.taskliner-terminal .sync-actions button{border-radius:0!important;box-shadow:none!important;border-color:#111!important;background:#fff!important;color:#111!important;backdrop-filter:none!important}
+              html.taskliner-terminal .sync-actions .primary,html.taskliner-terminal .taskliner-theme-choice button.active{background:#111!important;color:#fff!important;border-color:#111!important}
+              html.taskliner-terminal .sync-panel{border:1px solid #111!important}
+              html.taskliner-terminal .sync-note,html.taskliner-terminal .taskliner-theme-settings{border-color:#111!important}
+              html.taskliner-terminal .sync-open{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important}
+            \`;
+            pd.head.append(style);
+          }
+
+          const panel=pd.getElementById('syncPanel');
+          if(panel&&!pd.getElementById('tasklinerThemeSettings')){
+            const box=pd.createElement('div');
+            box.id='tasklinerThemeSettings';
+            box.className='taskliner-theme-settings';
+            const title=pd.createElement('div');
+            title.className='settings-section-title';
+            title.textContent='表示テーマ';
+            const choices=pd.createElement('div');
+            choices.className='taskliner-theme-choice';
+            const soft=pd.createElement('button');
+            soft.type='button';soft.dataset.theme='soft';soft.textContent='Soft';
+            const terminal=pd.createElement('button');
+            terminal.type='button';terminal.dataset.theme='terminal';terminal.textContent='Terminal';
+            const note=pd.createElement('div');
+            note.className='taskliner-theme-note';
+            note.textContent='Soft = 現行の柔らかいUI / Terminal = 白黒・高コントラストの機械的UI';
+            choices.append(soft,terminal);box.append(title,choices,note);
+            const syncTitle=panel.querySelector('.settings-section-title');
+            if(syncTitle)panel.insertBefore(box,syncTitle);else panel.append(box);
+            choices.addEventListener('click',event=>{
+              const button=event.target.closest('button[data-theme]');
+              if(!button)return;
+              localStorage.setItem(THEME_KEY,button.dataset.theme);
+              window.location.reload();
+            });
+          }
+          const settings=pd.getElementById('tasklinerThemeSettings');
+          if(settings){
+            settings.querySelectorAll('button[data-theme]').forEach(button=>button.classList.toggle('active',button.dataset.theme===theme));
+          }
+        }catch(error){}
+      })();
+    <\/script>`;
+    html=html.replace('</body>',bridgeScript+'</body>');
 
     document.open();
     document.write(html);
