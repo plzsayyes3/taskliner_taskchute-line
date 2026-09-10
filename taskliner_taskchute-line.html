@@ -5,12 +5,27 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TaskLiner</title>
 <script>
-(() => {
-  const target = window.top === window.self ? './index.html' : './app.html';
-  const params = new URLSearchParams(window.location.search);
-  params.set('_v', String(Date.now()));
-  const query = params.toString();
-  window.location.replace(`${target}${query ? `?${query}` : ''}${window.location.hash}`);
+(async()=>{
+  if(window.top===window.self){
+    window.location.replace(`./index.html${window.location.search}${window.location.hash}`);
+    return;
+  }
+  try{
+    const url=new URL('./app.html',window.location.href);
+    url.searchParams.set('_v',String(Date.now()));
+    const response=await fetch(url,{cache:'no-store'});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    let html=await response.text();
+    html=html.replace(
+      "return s==='running'?'[/]':s==='done'?'[x]':s==='deferred'?'[>]':'[ ]'",
+      "return s==='running'?'●':s==='done'?'✓':s==='deferred'?'–':'○'"
+    );
+    document.open();
+    document.write(html);
+    document.close();
+  }catch(error){
+    document.body.innerHTML=`<p>TaskLinerの読み込みに失敗しました: ${String(error.message||error)}</p>`;
+  }
 })();
 </script>
 </head>
