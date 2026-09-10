@@ -5,7 +5,7 @@ TaskLiner / taskchute-line の考え方を、Obsidian プラグインではな�
 ## 現在の構成
 
 - `taskliner_taskchute-line.html` — TaskLiner本体。HTML/CSS/JavaScriptを1ファイルに収録
-- `index.html` — GitHub Pages 用の入口。TaskLiner本体を表示し、GitHub同期UIを重ねる
+- `index.html` — GitHub Pages 用の入口。TaskLiner本体を表示し、設定UIを重ねる
 - `task-data` branch — GitHub同期用の既定データ保存ブランチ
 
 ## 現在できること
@@ -26,11 +26,17 @@ TaskLiner / taskchute-line の考え方を、Obsidian プラグインではな�
 - `.md` ダウンロード
 - GitHub tokenを使ったMarkdownの読込 / 保存
 
+## 設定
+
+画面右下の **`⚙`** がHTML版TaskLinerの設定入口です。
+
+現在は設定パネル内に `GitHub同期` を置いています。今後、表示・保存・同期などの設定もこの歯車へ集約します。
+
 ## 保存方式
 
 通常操作はブラウザの `localStorage` へ即時保存します。
 
-GitHub同期を使う場合は、画面右下の `☁ GitHub` から接続し、日別MarkdownをGitHubへ保存できます。
+GitHub同期を使う場合は、画面右下の `⚙` を開き、`GitHub同期` から日別MarkdownをGitHubへ保存できます。
 
 既定値:
 
@@ -75,7 +81,7 @@ TokenはHTMLやGitHubリポジトリには保存せず、**このブラウザの
 
 既定の `plzsayyes3/taskliner_taskchute-line` は public repository です。そのため、このrepositoryの `task-data` branchへ保存したタスクMarkdownも公開情報になります。
 
-タスク内容を非公開にしたい場合は、GitHub同期画面の `Repository` を自分の private repository に変更してください。HTML側は任意の `owner/repo`、branch、folderを指定できます。
+タスク内容を非公開にしたい場合は、設定パネルのGitHub同期にある `Repository` を自分の private repository に変更してください。HTML側は任意の `owner/repo`、branch、folderを指定できます。
 
 ## Markdown例
 
@@ -96,8 +102,8 @@ TokenはHTMLやGitHubリポジトリには保存せず、**このブラウザの
 
 1. GitHubでFine-grained Personal Access Tokenを作る
 2. Pagesを開く
-3. 右下の `☁ GitHub` を押す
-4. Tokenを入力する
+3. 右下の `⚙` を押して設定を開く
+4. `GitHub同期` のToken欄へ入力する
 5. `接続確認` を押す
 6. 必要に応じて `GitHubから読込` または `GitHubへ保存` を使う
 
