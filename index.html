@@ -2,11 +2,56 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="refresh" content="0; url=./taskliner_taskchute-line.html">
-<title>TaskLiner</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TaskLiner / taskchute-line</title>
+<style>
+html,body{margin:0;width:100%;height:100%;background:#f5f5f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}#app{display:block;width:100%;height:100%;border:0}.sync-open{position:fixed;right:14px;bottom:14px;z-index:20;border:1px solid #cfd3cd;background:#fff;color:#20211f;border-radius:999px;padding:9px 13px;font-weight:700;box-shadow:0 6px 22px rgba(0,0,0,.14)}.sync-panel{position:fixed;z-index:30;right:14px;bottom:62px;width:min(390px,calc(100vw - 28px));max-height:calc(100vh - 88px);overflow:auto;background:#fff;color:#20211f;border:1px solid #d9ddd7;border-radius:16px;padding:14px;box-shadow:0 18px 50px rgba(0,0,0,.2);display:none}.sync-panel.open{display:block}.sync-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.sync-head b{font-size:15px}.sync-head button{border:0;background:transparent;font-size:20px}.sync-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sync-field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}.sync-field.full{grid-column:1/-1}.sync-field label{font-size:11px;color:#6b7069}.sync-field input{width:100%;box-sizing:border-box;border:1px solid #d9ddd7;background:#f7f8f5;color:#20211f;border-radius:9px;padding:8px 9px;font:inherit;font-size:13px}.sync-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.sync-actions button{border:1px solid #d9ddd7;background:#f7f8f5;color:#20211f;border-radius:9px;padding:8px 10px;font-weight:650}.sync-actions .primary{background:#2f5d50;color:#fff;border-color:#2f5d50}.sync-status{font-size:12px;color:#60655e;margin-top:10px;min-height:18px}.sync-note{font-size:11px;line-height:1.5;color:#777d75;margin-top:10px;padding-top:9px;border-top:1px solid #eceeea}.warn{color:#9a4c2f;font-weight:650}@media(prefers-color-scheme:dark){html,body{background:#151714}.sync-open,.sync-panel{background:#1d201c;color:#eceee8;border-color:#343931}.sync-field input,.sync-actions button{background:#151714;color:#eceee8;border-color:#343931}.sync-field label,.sync-status,.sync-note{color:#a1a59c}.sync-note{border-color:#343931}.sync-actions .primary{background:#527d6e;color:#fff}.warn{color:#e6a17f}}@media(max-width:520px){.sync-panel{right:8px;bottom:58px;width:calc(100vw - 16px);max-height:72vh}.sync-open{right:10px;bottom:10px}.sync-grid{grid-template-columns:1fr}.sync-field.full{grid-column:auto}}
+</style>
 </head>
 <body>
-<p><a href="./taskliner_taskchute-line.html">TaskLinerを開く</a></p>
+<iframe id="app" src="./taskliner_taskchute-line.html" title="TaskLiner"></iframe>
+<button id="syncOpen" class="sync-open">☁ GitHub</button>
+<section id="syncPanel" class="sync-panel" aria-label="GitHub同期">
+  <div class="sync-head"><b>GitHub同期</b><button id="syncClose" aria-label="閉じる">×</button></div>
+  <div class="sync-grid">
+    <div class="sync-field full"><label>Fine-grained token</label><input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_... または ghp_..."></div>
+    <div class="sync-field full"><label>Repository (owner/repo)</label><input id="ghRepo" value="plzsayyes3/taskliner_taskchute-line"></div>
+    <div class="sync-field"><label>Branch</label><input id="ghBranch" value="task-data"></div>
+    <div class="sync-field"><label>Folder</label><input id="ghFolder" value="data"></div>
+  </div>
+  <div class="sync-actions">
+    <button id="ghCheck">接続確認</button>
+    <button id="ghLoad">GitHubから読込</button>
+    <button id="ghSave" class="primary">GitHubへ保存</button>
+    <button id="ghForget">Tokenを消去</button>
+  </div>
+  <div id="ghStatus" class="sync-status">未接続</div>
+  <div class="sync-note">Tokenはこのタブの <code>sessionStorage</code> にだけ保存し、リポジトリやHTMLには書き込みません。必要権限は保存先Repositoryの <b>Contents: Read and write</b> です。<br><span class="warn">現在の既定保存先リポジトリはpublicです。タスク内容を非公開にしたい場合は、Repository欄を自分のprivate repositoryへ変更してください。</span></div>
+</section>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),frame=$('app'),panel=$('syncPanel');
+const CONFIG_KEY='taskliner_github_sync_config_v1',TOKEN_KEY='taskliner_github_sync_token_v1';
+const knownSha=new Map();
+function status(text,isError=false){const el=$('ghStatus');el.textContent=text;el.style.color=isError?'#b24b45':''}
+function config(){return{repo:$('ghRepo').value.trim(),branch:$('ghBranch').value.trim()||'task-data',folder:$('ghFolder').value.trim().replace(/^\/+|\/+$/g,''),token:$('ghToken').value.trim()}}
+function saveConfig(){const c=config();localStorage.setItem(CONFIG_KEY,JSON.stringify({repo:c.repo,branch:c.branch,folder:c.folder}));if(c.token)sessionStorage.setItem(TOKEN_KEY,c.token)}
+function restoreConfig(){try{const c=JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}');if(c.repo)$('ghRepo').value=c.repo;if(c.branch)$('ghBranch').value=c.branch;if(c.folder!==undefined)$('ghFolder').value=c.folder}catch{}$('ghToken').value=sessionStorage.getItem(TOKEN_KEY)||''}
+function activeDate(){try{return(frame.contentDocument.getElementById('dateBtn').textContent||'').trim().slice(0,10)}catch{return''}}
+function markdownBox(){try{return frame.contentDocument.getElementById('markdownBox')}catch{return null}}
+function importButton(){try{return frame.contentDocument.getElementById('importMdBtn')}catch{return null}}
+function filePath(){const c=config(),date=activeDate();if(!date)throw new Error('日付を取得できません');return c.folder?`${c.folder}/${date}.md`:`${date}.md`}
+function splitRepo(repo){const p=repo.split('/').filter(Boolean);if(p.length!==2)throw new Error('Repositoryは owner/repo 形式で入力してください');return p}
+function headers(){const token=config().token;if(!token)throw new Error('Tokenを入力してください');return{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'}}
+function toBase64(text){const bytes=new TextEncoder().encode(text);let binary='';for(const b of bytes)binary+=String.fromCharCode(b);return btoa(binary)}
+function fromBase64(text){const binary=atob(String(text||'').replace(/\n/g,'')),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
+function endpoint(path=''){const c=config(),[owner,repo]=splitRepo(c.repo);return`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}${path}`}
+async function getRemote(path){const c=config();const url=endpoint(`/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(c.branch)}`);const r=await fetch(url,{headers:headers()});if(r.status===404)return null;if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||`GitHub API ${r.status}`)}return r.json()}
+async function check(){saveConfig();status('接続確認中…');try{const r=await fetch(endpoint(),{headers:headers()});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||`GitHub API ${r.status}`)}const d=await r.json();status(`接続OK: ${d.full_name} / ${config().branch}`)}catch(e){status(`接続失敗: ${e.message}`,true)}}
+async function loadRemote(){saveConfig();status('GitHubから読込中…');try{const path=filePath(),d=await getRemote(path);if(!d){status(`${path} はまだありません`);return}if(!d.content)throw new Error('ファイル内容を取得できません');const box=markdownBox(),button=importButton();if(!box||!button)throw new Error('TaskLiner画面へ接続できません');box.value=fromBase64(d.content);knownSha.set(`${config().repo}|${config().branch}|${path}`,d.sha);button.click();status(`${path} を読み込みました`)}catch(e){status(`読込失敗: ${e.message}`,true)}}
+async function saveRemote(){saveConfig();status('GitHubへ保存中…');try{const path=filePath(),box=markdownBox();if(!box)throw new Error('TaskLiner画面へ接続できません');const content=box.value.replace(/\s+$/,'')+'\n',current=await getRemote(path),key=`${config().repo}|${config().branch}|${path}`,known=knownSha.get(key);if(current&&known&&current.sha!==known&&!confirm('GitHub上のファイルが前回読込後に更新されています。上書きしますか？')){status('保存を中止しました');return}if(current&&!known&&!confirm('GitHub上に既存ファイルがあります。現在の画面内容で上書きしますか？')){status('保存を中止しました');return}const c=config(),body={message:`Update TaskLiner ${activeDate()}`,content:toBase64(content),branch:c.branch};if(current)body.sha=current.sha;const url=endpoint(`/contents/${path.split('/').map(encodeURIComponent).join('/')}`),r=await fetch(url,{method:'PUT',headers:headers(),body:JSON.stringify(body)});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||`GitHub API ${r.status}`)}const d=await r.json();if(d.content&&d.content.sha)knownSha.set(key,d.content.sha);status(`${path} を保存しました`)}catch(e){status(`保存失敗: ${e.message}`,true)}}
+$('syncOpen').onclick=()=>{panel.classList.add('open');restoreConfig()};$('syncClose').onclick=()=>panel.classList.remove('open');$('ghCheck').onclick=check;$('ghLoad').onclick=loadRemote;$('ghSave').onclick=saveRemote;$('ghForget').onclick=()=>{sessionStorage.removeItem(TOKEN_KEY);$('ghToken').value='';status('Tokenを消去しました')};['ghRepo','ghBranch','ghFolder'].forEach(id=>$(id).addEventListener('change',saveConfig));$('ghToken').addEventListener('change',saveConfig);restoreConfig();
+})();
+</script>
 </body>
 </html>
