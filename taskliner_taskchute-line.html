@@ -78,6 +78,85 @@
       html=html.replace('</head>',terminalStyle+'</head>');
     }
 
+    const heatStyle=`<style id="taskliner-time-heat-style">
+      .task.running{transition:background-color 1s linear,color .25s ease!important}
+      .task.running.time-heat-dark,
+      .task.running.time-heat-dark .task-title,
+      .task.running.time-heat-dark .task-meta,
+      .task.running.time-heat-dark .status-btn{color:#fff!important}
+      .task.running.time-heat-dark .task-actions button,
+      .task.running.time-heat-dark .task-more summary{
+        color:#fff!important;
+        border-color:rgba(255,255,255,.68)!important;
+        background:rgba(0,0,0,.12)!important;
+      }
+      .task.running.time-heat-dark .task-actions .primary-action{
+        color:#111!important;
+        background:#fff!important;
+        border-color:#fff!important;
+      }
+      .task.running.time-heat-dark .task-actions .delete-action{color:#fff!important}
+    </style>`;
+    html=html.replace('</head>',heatStyle+'</head>');
+
+    const heatScript=`<script id="taskliner-time-heat-script">
+      (()=>{
+        const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
+        const mix=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+        const rgb=v=>\`rgb(\${v[0]}, \${v[1]}, \${v[2]})\`;
+        const stops=[
+          [0,[255,255,255]],
+          [1,[238,76,76]],
+          [1.5,[121,73,45]],
+          [2,[18,18,18]]
+        ];
+        function colorAt(ratio){
+          const r=clamp(ratio,0,2);
+          for(let i=0;i<stops.length-1;i++){
+            const [aPos,aColor]=stops[i],[bPos,bColor]=stops[i+1];
+            if(r<=bPos)return mix(aColor,bColor,(r-aPos)/(bPos-aPos));
+          }
+          return stops[stops.length-1][1]
+        }
+        function luminance([r,g,b]){
+          const f=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};
+          return .2126*f(r)+.7152*f(g)+.0722*f(b)
+        }
+        function elapsedSeconds(h,m){
+          const d=new Date();
+          let n=d.getHours()*3600+d.getMinutes()*60+d.getSeconds()-(h*3600+m*60);
+          if(n<0)n+=86400;
+          return n
+        }
+        function clearHeat(row){
+          row.style.removeProperty('background-color');
+          row.classList.remove('time-heat-dark');
+          delete row.dataset.timeRatio
+        }
+        function updateHeat(){
+          document.querySelectorAll('.task').forEach(row=>{
+            if(!row.classList.contains('running')){clearHeat(row);return}
+            const meta=row.querySelector('.task-meta')?.textContent||'';
+            const estimateMatch=meta.match(/見積\\s*(\\d+)m/);
+            const startMatch=meta.match(/開始\\s*(\\d{1,2}):(\\d{2})/);
+            const estimate=estimateMatch?Number(estimateMatch[1]):0;
+            if(!estimate||!startMatch){clearHeat(row);return}
+            const seconds=elapsedSeconds(Number(startMatch[1]),Number(startMatch[2]));
+            const ratio=seconds/(estimate*60);
+            const color=colorAt(ratio);
+            row.dataset.timeRatio=ratio.toFixed(3);
+            row.style.setProperty('background-color',rgb(color),'important');
+            row.classList.toggle('time-heat-dark',luminance(color)<.24)
+          })
+        }
+        setInterval(updateHeat,1000);
+        requestAnimationFrame(updateHeat);
+        const root=document.getElementById('tasks');
+        if(root)new MutationObserver(updateHeat).observe(root,{childList:true,subtree:true})
+      })();
+    <\/script>`;
+    html=html.replace('</body>',heatScript+'</body>');
+
     const bridgeScript=`<script id="taskliner-theme-bridge">
       (()=>{
         const THEME_KEY='taskliner_theme_v1';
