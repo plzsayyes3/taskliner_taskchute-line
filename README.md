@@ -65,7 +65,11 @@ Repository access: 保存先repository
 Contents: Read and write
 ```
 
-TokenはHTMLやGitHubリポジトリには保存せず、ブラウザの `sessionStorage` のみに保持します。ブラウザのタブ/セッションを終了した後は再入力が必要になる場合があります。
+TokenはHTMLやGitHubリポジトリには保存せず、**このブラウザの `localStorage` に保存**します。そのため、ブラウザを閉じても次回アクセス時に再利用できます。
+
+`Tokenを消去` を押すと、`localStorage` からTokenを削除します。
+
+> Tokenを保存するブラウザは自分専用端末を前提とします。Fine-grained token は対象Repositoryだけに限定し、必要最小限の `Contents: Read and write` 権限にしてください。
 
 ### 公開範囲に注意
 
@@ -96,6 +100,8 @@ TokenはHTMLやGitHubリポジトリには保存せず、ブラウザの `sessio
 4. Tokenを入力する
 5. `接続確認` を押す
 6. 必要に応じて `GitHubから読込` または `GitHubへ保存` を使う
+
+入力したTokenは `localStorage` に保存され、次回アクセス時に復元されます。
 
 GitHub上のファイルが前回読込後に更新されていた場合は、上書き前に確認を出します。
 
