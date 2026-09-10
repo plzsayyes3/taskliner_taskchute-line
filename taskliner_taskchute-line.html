@@ -16,10 +16,37 @@
     const response=await fetch(url,{cache:'no-store'});
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     let html=await response.text();
+
     html=html.replace(
       "return s==='running'?'[/]':s==='done'?'[x]':s==='deferred'?'[>]':'[ ]'",
       "return s==='running'?'●':s==='done'?'✓':s==='deferred'?'–':'○'"
     );
+
+    const compactStyle=`<style id="taskliner-compact-top">
+      .top{padding:5px 0 7px!important}
+      .topline{min-height:30px!important}
+      .header-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;margin-top:4px!important}
+      .datebar{margin-top:0!important;gap:5px!important}
+      .datebar button{height:30px!important;padding:4px 8px!important}
+      .summary-line{margin-top:0!important;padding-left:0!important;gap:12px!important;justify-content:flex-end!important;font-size:10px!important}
+      .summary-line b{font-size:11px!important}
+      .workspace{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr)!important;gap:0!important;margin:4px 0 8px!important;background:var(--panel)!important;border:1px solid var(--line)!important;border-radius:12px!important;box-shadow:var(--shadow)!important;overflow:hidden!important}
+      .workspace .current,.workspace .add{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+      .workspace .current{padding:9px 11px!important;border-right:1px solid var(--line)!important}
+      .workspace .add{padding:9px 10px!important}
+      .current-main{margin-top:2px!important;gap:8px!important}
+      .current .title{font-size:15px!important}
+      .current-end{padding:5px 10px!important;font-size:11px!important}
+      .add-label{margin-bottom:4px!important}
+      @media(max-width:720px){
+        .header-row{align-items:flex-start!important;flex-direction:column!important;gap:5px!important}
+        .summary-line{justify-content:flex-start!important}
+        .workspace{grid-template-columns:1fr!important}
+        .workspace .current{border-right:0!important;border-bottom:1px solid var(--line)!important}
+      }
+    </style>`;
+    html=html.replace('</head>',compactStyle+'</head>');
+
     document.open();
     document.write(html);
     document.close();
