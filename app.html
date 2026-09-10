@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
 <style>
 :root{
   color-scheme:light;
@@ -20,42 +21,42 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:"M PLUS 1p",-ap
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 .app{max-width:960px;margin:0 auto;padding:10px 14px 80px}
-.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(12px);padding:7px 0 10px}
+.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(12px);padding:5px 0 7px}
 .topline{display:flex;align-items:baseline;gap:14px;min-height:34px;padding-right:190px}
 .brand{font-size:15px;font-weight:800;letter-spacing:.01em;white-space:nowrap}
 .clock{font-size:25px;font-weight:650;letter-spacing:.025em;font-variant-numeric:tabular-nums;line-height:1;color:var(--text)}
-.datebar{display:flex;align-items:center;gap:6px;margin-top:7px}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:5px}.datebar{display:flex;align-items:center;gap:5px;margin-top:0}
 .datebar button,.toolbar button,.task-actions button,.status-btn,.section-head button,.section-menu button,.current-end{
   border:1px solid var(--line);background:var(--panel);border-radius:9px
 }
-.datebar button{height:32px;padding:5px 9px}
+.datebar button{height:30px;padding:4px 8px}
 .datebar .arrow{width:36px;padding:0;font-size:15px}
 .date-btn{min-width:150px;font-weight:700;text-align:center}
 .today-btn{font-size:12px;color:var(--muted)}
 .today-mark{font-size:9px;color:var(--muted);margin-left:6px;font-weight:600}
-.summary-line{display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;padding-left:2px;color:var(--muted);font-size:11px}
+.summary-line{display:flex;gap:12px;flex-wrap:wrap;margin-top:0;padding-left:0;color:var(--muted);font-size:10px;justify-content:flex-end}
 .summary-line span{display:flex;align-items:baseline;gap:4px}
-.summary-line b{color:var(--text);font-size:12px;font-variant-numeric:tabular-nums}
-.workspace{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:10px;margin:4px 0 10px}
-.current,.add{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
-.current{padding:11px 12px}
+.summary-line b{color:var(--text);font-size:11px;font-variant-numeric:tabular-nums}
+.workspace{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:0;margin:4px 0 8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.current,.add{background:transparent;border:0;border-radius:0;box-shadow:none}
+.current{padding:10px 12px;border-right:1px solid var(--line)}
 .current-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .current .label,.add-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.05em}
 .current-elapsed{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.current-main{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-top:4px}
+.current-main{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-top:3px}
 .current .title{font-weight:750;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.current .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px;margin-top:3px}
-.current-end{padding:6px 12px;font-size:12px;font-weight:750;color:var(--accent)}
+.current .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:11px;margin-top:2px}
+.current-end{padding:5px 10px;font-size:11px;font-weight:750;color:var(--accent)}
 .current-end[hidden]{display:none}
-.add{padding:10px}
-.add-label{margin:0 2px 6px}
+.add{padding:9px 10px}
+.add-label{margin:0 2px 5px}
 .add-form{display:grid;grid-template-columns:1fr 76px auto;gap:6px}
-.add input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 9px;font-size:13px}
+.add input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px;font-size:12px}
 .primary{border:none!important;background:var(--accent)!important;color:white!important;font-weight:750}
 .estimate{text-align:center}
-.add .primary{border-radius:8px;padding:7px 12px;font-size:12px}
+.add .primary{border-radius:8px;padding:6px 11px;font-size:11px}
 .toolbar-wrap{position:relative}
-.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 11px}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:3px 0 10px}
 .toolbar button{padding:6px 9px;font-size:11px;color:var(--muted)}
 .toolbar button.active{color:var(--accent);font-weight:700}
 .tasks{display:flex;flex-direction:column;gap:7px}
@@ -68,7 +69,8 @@ button{cursor:pointer}
 .task.running{background:var(--running)}
 .task.done{background:var(--done);opacity:.82}
 .task.deferred{background:var(--deferred)}
-.status-btn{align-self:start;min-width:42px;padding:6px 7px;font-size:12px;font-weight:800}
+.status-btn{align-self:start;width:36px;height:36px;min-width:36px;padding:0;display:grid;place-items:center;font-size:18px;font-weight:400;color:var(--muted)}
+.status-btn i{font-size:18px;line-height:1}.task.running .status-btn{color:var(--accent)}.task.done .status-btn{color:var(--accent)}
 .task-main{min-width:0}
 .task-title{width:100%;border:0;background:transparent;padding:1px 0;font-weight:650;outline:none}
 .task-meta{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-top:4px;font-variant-numeric:tabular-nums}
@@ -102,7 +104,10 @@ button{cursor:pointer}
   .topline{padding-right:155px;gap:10px}
   .brand{font-size:13px}
   .clock{font-size:22px}
+  .header-row{align-items:flex-start;flex-direction:column;gap:6px}
+  .summary-line{justify-content:flex-start}
   .workspace{grid-template-columns:1fr}
+  .current{border-right:0;border-bottom:1px solid var(--line)}
   .add-form{grid-template-columns:1fr 74px auto}
 }
 @media(max-width:520px){
@@ -124,17 +129,19 @@ button{cursor:pointer}
       <div class="brand">TaskLiner</div>
       <div id="nowClock" class="clock">--:--:--</div>
     </div>
-    <div class="datebar">
-      <button id="prevDay" class="arrow" aria-label="前日">‹</button>
-      <button id="dateBtn" class="date-btn"></button>
-      <button id="nextDay" class="arrow" aria-label="翌日">›</button>
-      <button id="todayBtn" class="today-btn">今日</button>
-    </div>
-    <div class="summary-line" aria-label="今日の進捗">
-      <span><b id="doneCount">0/0</b> 完了</span>
-      <span><b id="progressPct">0%</b> 進捗</span>
-      <span><b id="recordedMin">0m</b> 実績</span>
-      <span><b id="remainingMin">0m</b> 残り</span>
+    <div class="header-row">
+      <div class="datebar">
+        <button id="prevDay" class="arrow" aria-label="前日">‹</button>
+        <button id="dateBtn" class="date-btn"></button>
+        <button id="nextDay" class="arrow" aria-label="翌日">›</button>
+        <button id="todayBtn" class="today-btn">今日</button>
+      </div>
+      <div class="summary-line" aria-label="今日の進捗">
+        <span><b id="doneCount">0/0</b> 完了</span>
+        <span><b id="progressPct">0%</b> 進捗</span>
+        <span><b id="recordedMin">0m</b> 実績</span>
+        <span><b id="remainingMin">0m</b> 残り</span>
+      </div>
     </div>
   </header>
 
@@ -465,9 +472,12 @@ function moveTomorrow(id){
   tasks.splice(i,1);removeTaskNode(id);save();toast(`${target} へ移動しました`)
 }
 
-function statusLabel(t){
+function statusIcon(t){
   const s=stateOf(t);
-  return s==='running'?'[/]':s==='done'?'[x]':s==='deferred'?'[>]':'[ ]'
+  if(s==='running')return '<i class="ph-fill ph-play" aria-hidden="true"></i>';
+  if(s==='done')return '<i class="ph ph-check-circle" aria-hidden="true"></i>';
+  if(s==='deferred')return '<i class="ph ph-pause" aria-hidden="true"></i>';
+  return '<i class="ph ph-circle" aria-hidden="true"></i>'
 }
 function span(text){const e=document.createElement('span');e.textContent=text;return e}
 function btn(text,fn,disabled=false,cls=''){
@@ -481,7 +491,7 @@ function createTaskRow(t,index){
 
   const status=document.createElement('button');
   status.className='status-btn';
-  status.textContent=statusLabel(t);
+  status.innerHTML=statusIcon(t);
   status.title=s==='todo'?'開始':s==='running'?'終了':s==='done'?'保留にする':'リセット';
   status.onclick=()=>{
     if(s==='todo')startTask(t.id);
