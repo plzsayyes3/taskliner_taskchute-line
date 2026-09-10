@@ -7,7 +7,7 @@ TaskLiner / taskchute-line の考え方を、Obsidian プラグインではな�
 - `index.html` — GitHub Pages の入口。TaskLiner本体を表示し、設定UIを重ねる
 - `app.html` — TaskLinerのビュー・操作本体
 - `taskliner_taskchute-line.html` — 直接アクセス時に `index.html` へ戻す互換入口
-- `task-data` branch — GitHub同期用の既定データ保存ブランチ
+- GitHub同期の既定保存先 — `plzsayyes3/mynotebook` の `task-data` branch / `09_taskchute`
 
 ## 現在できること
 
@@ -63,24 +63,24 @@ GitHub同期を使う場合は、画面右下の `⚙` を開き、`GitHub同期
 既定値:
 
 ```text
-Repository: plzsayyes3/taskliner_taskchute-line
+Repository: plzsayyes3/mynotebook
 Branch: task-data
-Folder: data
+Folder: 09_taskchute
 ```
 
 保存先は次の形式です。
 
 ```text
-data/YYYY-MM-DD.md
+09_taskchute/YYYY-MM-DD.md
 ```
 
 例:
 
 ```text
-data/2026-09-10.md
+09_taskchute/2026-09-10.md
 ```
 
-`main` ではなく `task-data` branch へ保存するため、タスク保存のたびにGitHub Pagesを再デプロイしません。
+HTML本体を置く `plzsayyes3/taskliner_taskchute-line` の `main` と、タスクデータを置く `plzsayyes3/mynotebook` の `task-data` branch を分離しています。そのため、タスク保存のたびにGitHub Pagesを再デプロイしません。
 
 ### GitHub token
 
@@ -89,7 +89,7 @@ Fine-grained Personal Access Token を使用します。
 必要権限:
 
 ```text
-Repository access: 保存先repository
+Repository access: plzsayyes3/mynotebook
 Contents: Read and write
 ```
 
@@ -99,11 +99,11 @@ TokenはHTMLやGitHubリポジトリには保存せず、**このブラウザの
 
 > Tokenを保存するブラウザは自分専用端末を前提とします。Fine-grained token は対象Repositoryだけに限定し、必要最小限の `Contents: Read and write` 権限にしてください。
 
-### 公開範囲に注意
+### 公開範囲
 
-既定の `plzsayyes3/taskliner_taskchute-line` は public repository です。そのため、このrepositoryの `task-data` branchへ保存したタスクMarkdownも公開情報になります。
+HTML本体の `plzsayyes3/taskliner_taskchute-line` は public repository です。一方、既定のタスク保存先 `plzsayyes3/mynotebook` は private repository として運用し、タスクMarkdownをHTML本体の公開Repositoryへ保存しない構成にしています。
 
-タスク内容を非公開にしたい場合は、設定パネルのGitHub同期にある `Repository` を自分の private repository に変更してください。HTML側は任意の `owner/repo`、branch、folderを指定できます。
+設定パネルでは任意の `owner/repo`、branch、folderを指定できます。保存先を変更する場合は、接続確認でpublic/privateとBranchの存在を確認してください。
 
 ## Markdown例
 
