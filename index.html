@@ -26,7 +26,7 @@ html,body{margin:0;width:100%;height:100%;background:#f5f5f2;font-family:-apple-
     <button id="ghForget">Tokenを消去</button>
   </div>
   <div id="ghStatus" class="sync-status">未接続</div>
-  <div class="sync-note">Tokenはこのタブの <code>sessionStorage</code> にだけ保存し、リポジトリやHTMLには書き込みません。必要権限は保存先Repositoryの <b>Contents: Read and write</b> です。<br><span class="warn">現在の既定保存先リポジトリはpublicです。タスク内容を非公開にしたい場合は、Repository欄を自分のprivate repositoryへ変更してください。</span></div>
+  <div class="sync-note">Tokenはこのブラウザの <code>localStorage</code> に保存し、リポジトリやHTMLには書き込みません。必要権限は保存先Repositoryの <b>Contents: Read and write</b> です。<br><span class="warn">現在の既定保存先リポジトリはpublicです。タスク内容を非公開にしたい場合は、Repository欄を自分のprivate repositoryへ変更してください。</span></div>
 </section>
 <script>
 (()=>{'use strict';
@@ -35,8 +35,8 @@ const CONFIG_KEY='taskliner_github_sync_config_v1',TOKEN_KEY='taskliner_github_s
 const knownSha=new Map();
 function status(text,isError=false){const el=$('ghStatus');el.textContent=text;el.style.color=isError?'#b24b45':''}
 function config(){return{repo:$('ghRepo').value.trim(),branch:$('ghBranch').value.trim()||'task-data',folder:$('ghFolder').value.trim().replace(/^\/+|\/+$/g,''),token:$('ghToken').value.trim()}}
-function saveConfig(){const c=config();localStorage.setItem(CONFIG_KEY,JSON.stringify({repo:c.repo,branch:c.branch,folder:c.folder}));if(c.token)sessionStorage.setItem(TOKEN_KEY,c.token)}
-function restoreConfig(){try{const c=JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}');if(c.repo)$('ghRepo').value=c.repo;if(c.branch)$('ghBranch').value=c.branch;if(c.folder!==undefined)$('ghFolder').value=c.folder}catch{}$('ghToken').value=sessionStorage.getItem(TOKEN_KEY)||''}
+function saveConfig(){const c=config();localStorage.setItem(CONFIG_KEY,JSON.stringify({repo:c.repo,branch:c.branch,folder:c.folder}));if(c.token)localStorage.setItem(TOKEN_KEY,c.token)}
+function restoreConfig(){try{const c=JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}');if(c.repo)$('ghRepo').value=c.repo;if(c.branch)$('ghBranch').value=c.branch;if(c.folder!==undefined)$('ghFolder').value=c.folder}catch{}$('ghToken').value=localStorage.getItem(TOKEN_KEY)||''}
 function activeDate(){try{return(frame.contentDocument.getElementById('dateBtn').textContent||'').trim().slice(0,10)}catch{return''}}
 function markdownBox(){try{return frame.contentDocument.getElementById('markdownBox')}catch{return null}}
 function importButton(){try{return frame.contentDocument.getElementById('importMdBtn')}catch{return null}}
@@ -50,7 +50,7 @@ async function getRemote(path){const c=config();const url=endpoint(`/contents/${
 async function check(){saveConfig();status('接続確認中…');try{const r=await fetch(endpoint(),{headers:headers()});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||`GitHub API ${r.status}`)}const d=await r.json();status(`接続OK: ${d.full_name} / ${config().branch}`)}catch(e){status(`接続失敗: ${e.message}`,true)}}
 async function loadRemote(){saveConfig();status('GitHubから読込中…');try{const path=filePath(),d=await getRemote(path);if(!d){status(`${path} はまだありません`);return}if(!d.content)throw new Error('ファイル内容を取得できません');const box=markdownBox(),button=importButton();if(!box||!button)throw new Error('TaskLiner画面へ接続できません');box.value=fromBase64(d.content);knownSha.set(`${config().repo}|${config().branch}|${path}`,d.sha);button.click();status(`${path} を読み込みました`)}catch(e){status(`読込失敗: ${e.message}`,true)}}
 async function saveRemote(){saveConfig();status('GitHubへ保存中…');try{const path=filePath(),box=markdownBox();if(!box)throw new Error('TaskLiner画面へ接続できません');const content=box.value.replace(/\s+$/,'')+'\n',current=await getRemote(path),key=`${config().repo}|${config().branch}|${path}`,known=knownSha.get(key);if(current&&known&&current.sha!==known&&!confirm('GitHub上のファイルが前回読込後に更新されています。上書きしますか？')){status('保存を中止しました');return}if(current&&!known&&!confirm('GitHub上に既存ファイルがあります。現在の画面内容で上書きしますか？')){status('保存を中止しました');return}const c=config(),body={message:`Update TaskLiner ${activeDate()}`,content:toBase64(content),branch:c.branch};if(current)body.sha=current.sha;const url=endpoint(`/contents/${path.split('/').map(encodeURIComponent).join('/')}`),r=await fetch(url,{method:'PUT',headers:headers(),body:JSON.stringify(body)});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||`GitHub API ${r.status}`)}const d=await r.json();if(d.content&&d.content.sha)knownSha.set(key,d.content.sha);status(`${path} を保存しました`)}catch(e){status(`保存失敗: ${e.message}`,true)}}
-$('syncOpen').onclick=()=>{panel.classList.add('open');restoreConfig()};$('syncClose').onclick=()=>panel.classList.remove('open');$('ghCheck').onclick=check;$('ghLoad').onclick=loadRemote;$('ghSave').onclick=saveRemote;$('ghForget').onclick=()=>{sessionStorage.removeItem(TOKEN_KEY);$('ghToken').value='';status('Tokenを消去しました')};['ghRepo','ghBranch','ghFolder'].forEach(id=>$(id).addEventListener('change',saveConfig));$('ghToken').addEventListener('change',saveConfig);restoreConfig();
+$('syncOpen').onclick=()=>{panel.classList.add('open');restoreConfig()};$('syncClose').onclick=()=>panel.classList.remove('open');$('ghCheck').onclick=check;$('ghLoad').onclick=loadRemote;$('ghSave').onclick=saveRemote;$('ghForget').onclick=()=>{localStorage.removeItem(TOKEN_KEY);$('ghToken').value='';status('Tokenを消去しました')};['ghRepo','ghBranch','ghFolder'].forEach(id=>$(id).addEventListener('change',saveConfig));$('ghToken').addEventListener('change',saveConfig);restoreConfig();
 })();
 </script>
 </body>
