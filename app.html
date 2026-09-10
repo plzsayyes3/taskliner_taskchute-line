@@ -35,10 +35,12 @@
 <script>
 (()=>{'use strict';
 const STORAGE_PREFIX='taskliner_taskchute_line_v1:';
+const DOCUMENT_PREFIX='taskliner_taskchute_line_document_v1:';
 const HIDDEN_SECTIONS_KEY='taskliner_taskchute_line_hidden_sections_v1';
 const $=id=>document.getElementById(id);
 let activeDate=todayStr();
 let tasks=[];
+let documentNodes=[];
 let hiddenSections=loadHiddenSections();
 
 function pad(n){return String(n).padStart(2,'0')}
@@ -48,31 +50,40 @@ function nowTime(){const d=new Date();return`${pad(d.getHours())}:${pad(d.getMin
 function minutesOf(t){if(!/^\d{1,2}:\d{2}$/.test(t||''))return null;const[h,m]=t.split(':').map(Number);return h*60+m}
 function elapsed(start,end){const a=minutesOf(start),b=minutesOf(end);if(a===null||b===null)return 0;let n=b-a;if(n<0)n+=1440;return n}
 function uid(){return`${Date.now().toString(36)}${Math.random().toString(36).slice(2,8)}`}
-function stateOf(t){if(t.deferred)return'deferred';if(t.start&&t.end)return'done';if(t.start)return'running';return'todo'}
-function normalizeTask(t={}){return{id:t.id||uid(),title:String(t.title||'').trim(),estimate:Number(t.estimate)||0,start:t.start||'',end:t.end||'',actualMin:Number(t.actualMin)||0,deferred:!!t.deferred,skipDate:t.skipDate||'',section:String(t.section||'').trim()}}
+function stateOf(t){if(t.deferred)return'deferred';if(t.completed||t.start&&t.end)return'done';if(t.start)return'running';return'todo'}
+function normalizeTask(t={}){return{id:t.id||uid(),title:String(t.title||'').trim(),estimate:Number(t.estimate)||0,start:t.start||'',end:t.end||'',actualMin:Number(t.actualMin)||0,completed:!!t.completed,deferred:!!t.deferred,skipDate:t.skipDate||'',section:String(t.section||'').trim(),bullet:['-','*','+'].includes(t.bullet)?t.bullet:'-',hadCheckbox:t.hadCheckbox!==false,estimateStyle:t.estimateStyle||'hourglass',estimateGap:t.estimateGap===undefined?' ':String(t.estimateGap),childLines:Array.isArray(t.childLines)?t.childLines.map(String):[]}}
 function loadHiddenSections(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_SECTIONS_KEY)||'[]'))}catch{return new Set()}}
 function saveHiddenSections(){localStorage.setItem(HIDDEN_SECTIONS_KEY,JSON.stringify([...hiddenSections]))}
 function sectionNames(){const result=[];for(const t of tasks){if(t.section&&!result.includes(t.section))result.push(t.section)}return result}
 function hideSection(name){if(!name)return;hiddenSections.add(name);saveHiddenSections();render();toast(`「${name}」を非表示にしました`)}
 function toggleSection(name){if(hiddenSections.has(name))hiddenSections.delete(name);else hiddenSections.add(name);saveHiddenSections();render()}
 function showAllSections(){hiddenSections.clear();saveHiddenSections();render();toast('すべてのセクションを表示しました')}
-function load(){try{tasks=(JSON.parse(localStorage.getItem(STORAGE_PREFIX+activeDate)||'[]')||[]).map(normalizeTask)}catch{tasks=[]}render()}
-function save(){localStorage.setItem(STORAGE_PREFIX+activeDate,JSON.stringify(tasks));render()}
+function canonicalNodesFromTasks(items){const nodes=[];let currentSection=null;for(const t of items){if(t.section!==currentSection){if(t.section){if(nodes.length&&!(nodes[nodes.length-1].type==='raw'&&nodes[nodes.length-1].text===''))nodes.push({type:'raw',text:''});nodes.push({type:'raw',text:`## ${t.section}`})}currentSection=t.section}nodes.push({type:'task',id:t.id})}return nodes}
+function validNodes(value){return Array.isArray(value)&&value.every(n=>n&&((n.type==='raw'&&typeof n.text==='string')||(n.type==='task'&&typeof n.id==='string')))}
+function ensureTaskNodes(){const currentIds=new Set(tasks.map(t=>t.id));documentNodes=documentNodes.filter(n=>n.type==='raw'||currentIds.has(n.id));const nodeIds=new Set(documentNodes.filter(n=>n.type==='task').map(n=>n.id));for(const t of tasks){if(!nodeIds.has(t.id))insertTaskNode(t,documentNodes,tasks)}}
+function load(){try{const stored=JSON.parse(localStorage.getItem(STORAGE_PREFIX+activeDate)||'[]');tasks=(Array.isArray(stored)?stored:stored&&Array.isArray(stored.tasks)?stored.tasks:[]).map(normalizeTask)}catch{tasks=[]}try{const storedNodes=JSON.parse(localStorage.getItem(DOCUMENT_PREFIX+activeDate)||'null');documentNodes=validNodes(storedNodes)?storedNodes:canonicalNodesFromTasks(tasks)}catch{documentNodes=canonicalNodesFromTasks(tasks)}ensureTaskNodes();render()}
+function save(){ensureTaskNodes();localStorage.setItem(STORAGE_PREFIX+activeDate,JSON.stringify(tasks));localStorage.setItem(DOCUMENT_PREFIX+activeDate,JSON.stringify(documentNodes));render()}
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),1600)}
 
-function taskToMarkdown(t){const s=stateOf(t),mark=s==='done'?'x':s==='running'?'/':s==='deferred'?'>':' ';let line=`- [${mark}] ${t.title}`;if(t.estimate>0)line+=` ⏳${t.estimate}m`;if(t.start||t.end){const dur=t.actualMin||(t.start&&t.end?elapsed(t.start,t.end):0);line+=` 【${t.start||''}-${t.end||''}${dur?` / ${dur}m`:''}】`}if(t.skipDate)line+=` [SKIP ${t.skipDate}]`;return line}
-function exportMarkdown(){const lines=[];let currentSection=null;for(const t of tasks){if(t.section!==currentSection){if(t.section){if(lines.length&&lines[lines.length-1]!=='')lines.push('');lines.push(`## ${t.section}`)}currentSection=t.section}lines.push(taskToMarkdown(t))}return lines.join('\n')}
-function parseMarkdown(text){const result=[];let currentSection='';for(const raw of String(text||'').split(/\r?\n/)){const heading=raw.match(/^\s*##\s+(.+?)\s*$/);if(heading){currentSection=heading[1].trim();continue}const m=raw.match(/^\s*[-*+]\s+\[([^\]])\]\s+(.*)$/);if(!m)continue;let body=m[2].trim();const mark=m[1];let skipDate='';const sm=body.match(/\s*\[SKIP(?:\s+(\d{4}-\d{2}-\d{2}|\d{4}))?\]\s*$/i);if(sm){skipDate=sm[1]||'';body=body.slice(0,sm.index).trim()}let start='',end='',actualMin=0;const tm=body.match(/\s*【\s*(\d{1,2}:\d{2})?\s*[-－ー]\s*(\d{1,2}:\d{2})?\s*(?:\/\s*(\d+)m)?\s*】\s*$/);if(tm){start=tm[1]||'';end=tm[2]||'';actualMin=Number(tm[3])||0;body=body.slice(0,tm.index).trim()}let estimate=0;const em=body.match(/\s+⏳\s*(\d+)m\s*$/);if(em){estimate=Number(em[1])||0;body=body.slice(0,em.index).trim()}const deferred=mark==='>'||mark==='<';if(mark.toLowerCase()==='x'&&!end){start=start||'00:00';end=end||'00:00'}result.push(normalizeTask({title:body,estimate,start,end,actualMin,deferred,skipDate,section:currentSection}))}return result}
+function taskToMarkdown(t){const s=stateOf(t),mark=s==='done'?'x':s==='running'?'/':s==='deferred'?'>':' ';const keepPlain=t.hadCheckbox===false&&s==='todo';let line=`${t.bullet||'-'} ${keepPlain?'':`[${mark}] `}${t.title}`;if(t.estimate>0){if(t.estimateStyle==='paren')line+=`${t.estimateGap}(${t.estimate}m)`;else line+=`${t.estimateGap||' '}⏳${t.estimate}m`}if(t.start||t.end){const dur=t.actualMin||(t.start&&t.end?elapsed(t.start,t.end):0);line+=` 【${t.start||''}-${t.end||''}${dur?` / ${dur}m`:''}】`}if(t.skipDate)line+=` [SKIP ${t.skipDate}]`;return line}
+function exportMarkdown(){ensureTaskNodes();const byId=new Map(tasks.map(t=>[t.id,t])),lines=[];for(const node of documentNodes){if(node.type==='raw'){lines.push(node.text);continue}const t=byId.get(node.id);if(!t)continue;lines.push(taskToMarkdown(t),...t.childLines)}return lines.join('\n')}
+function parseTaskLine(raw,currentSection){const m=raw.match(/^([-*+])\s+(?:\[([^\]])\]\s+)?(.*)$/);if(!m)return null;let body=m[3].trim();const mark=m[2]===undefined?' ':m[2];let skipDate='';const sm=body.match(/\s*\[SKIP(?:\s+(\d{4}-\d{2}-\d{2}|\d{4}))?\]\s*$/i);if(sm){skipDate=sm[1]||'';body=body.slice(0,sm.index).trimEnd()}let start='',end='',actualMin=0;const tm=body.match(/\s*【\s*(\d{1,2}:\d{2})?\s*[-－ー]\s*(\d{1,2}:\d{2})?\s*(?:\/\s*(\d+)m)?\s*】\s*$/);if(tm){start=tm[1]||'';end=tm[2]||'';actualMin=Number(tm[3])||0;body=body.slice(0,tm.index).trimEnd()}let estimate=0,estimateStyle='hourglass',estimateGap=' ';const hm=body.match(/(\s*)⏳\s*(\d+)m\s*$/);if(hm){estimate=Number(hm[2])||0;estimateStyle='hourglass';estimateGap=hm[1]||' ';body=body.slice(0,hm.index).trimEnd()}else{const pm=body.match(/(\s*)\((\d+)m\)\s*$/);if(pm){estimate=Number(pm[2])||0;estimateStyle='paren';estimateGap=pm[1]||'';body=body.slice(0,pm.index).trimEnd()}}return normalizeTask({title:body,estimate,start,end,actualMin,completed:String(mark).toLowerCase()==='x',deferred:mark==='>'||mark==='<',skipDate,section:currentSection,bullet:m[1],hadCheckbox:m[2]!==undefined,estimateStyle,estimateGap,childLines:[]})}
+function parseMarkdown(text){const result=[],nodes=[];let currentSection='',lastTask=null;for(const raw of String(text||'').split(/\r?\n/)){const heading=raw.match(/^\s*##\s+(.+?)\s*$/);if(heading){currentSection=heading[1].trim();nodes.push({type:'raw',text:raw});lastTask=null;continue}if(/^\s+\S/.test(raw)&&lastTask){lastTask.childLines.push(raw);continue}const task=parseTaskLine(raw,currentSection);if(task){result.push(task);nodes.push({type:'task',id:task.id});lastTask=task;continue}nodes.push({type:'raw',text:raw});if(raw.trim()!=='')lastTask=null}return{tasks:result,nodes}}
+function insertTaskNode(task,nodes=documentNodes,taskList=tasks){let insertAt=-1;for(let i=nodes.length-1;i>=0;i--){const n=nodes[i];if(n.type!=='task')continue;const peer=taskList.find(t=>t.id===n.id);if(peer&&peer.section===task.section){insertAt=i+1;break}}if(insertAt<0&&task.section){for(let i=nodes.length-1;i>=0;i--){const n=nodes[i];if(n.type==='raw'&&n.text.trim()===`## ${task.section}`){insertAt=i+1;break}}}if(insertAt<0){if(task.section){if(nodes.length&&!(nodes[nodes.length-1].type==='raw'&&nodes[nodes.length-1].text===''))nodes.push({type:'raw',text:''});nodes.push({type:'raw',text:`## ${task.section}`})}insertAt=nodes.length}nodes.splice(insertAt,0,{type:'task',id:task.id})}
+function removeTaskNode(id,nodes=documentNodes){const i=nodes.findIndex(n=>n.type==='task'&&n.id===id);if(i>=0)nodes.splice(i,1)}
+function swapTaskNodes(idA,idB){const a=documentNodes.findIndex(n=>n.type==='task'&&n.id===idA),b=documentNodes.findIndex(n=>n.type==='task'&&n.id===idB);if(a>=0&&b>=0)[documentNodes[a],documentNodes[b]]=[documentNodes[b],documentNodes[a]]}
+function readStoredDate(date){let dateTasks=[];try{const stored=JSON.parse(localStorage.getItem(STORAGE_PREFIX+date)||'[]');dateTasks=(Array.isArray(stored)?stored:stored&&Array.isArray(stored.tasks)?stored.tasks:[]).map(normalizeTask)}catch{}let nodes=[];try{const storedNodes=JSON.parse(localStorage.getItem(DOCUMENT_PREFIX+date)||'null');nodes=validNodes(storedNodes)?storedNodes:canonicalNodesFromTasks(dateTasks)}catch{nodes=canonicalNodesFromTasks(dateTasks)}return{tasks:dateTasks,nodes}}
+function writeStoredDate(date,state){localStorage.setItem(STORAGE_PREFIX+date,JSON.stringify(state.tasks));localStorage.setItem(DOCUMENT_PREFIX+date,JSON.stringify(state.nodes))}
 
-function endRunning(at){for(const t of tasks){if(stateOf(t)==='running'){t.end=at;t.actualMin=elapsed(t.start,t.end)}}}
+function endRunning(at){for(const t of tasks){if(stateOf(t)==='running'){t.end=at;t.actualMin=elapsed(t.start,t.end);t.completed=true}}}
 function latestEnd(){let latest='';for(const t of tasks){if(t.end&&(!latest||minutesOf(t.end)>minutesOf(latest)))latest=t.end}return latest}
-function startTask(id,usePrevious=false){const t=tasks.find(x=>x.id===id);if(!t||stateOf(t)==='done')return;const at=(usePrevious&&latestEnd())||nowTime();endRunning(at);t.deferred=false;t.skipDate='';t.start=at;t.end='';t.actualMin=0;save()}
-function endTask(id){const t=tasks.find(x=>x.id===id);if(!t||stateOf(t)!=='running')return;t.end=nowTime();t.actualMin=elapsed(t.start,t.end);save()}
-function resetTask(id){const t=tasks.find(x=>x.id===id);if(!t)return;t.start='';t.end='';t.actualMin=0;t.deferred=false;t.skipDate='';save()}
-function deferTask(id){const t=tasks.find(x=>x.id===id);if(!t)return;t.start='';t.end='';t.actualMin=0;t.deferred=!t.deferred;t.skipDate='';save()}
-function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);save()}
-function moveTask(id,delta){const i=tasks.findIndex(t=>t.id===id);if(i<0)return;const section=tasks[i].section;const peers=tasks.map((t,idx)=>({t,idx})).filter(x=>x.t.section===section);const p=peers.findIndex(x=>x.idx===i),target=peers[p+delta];if(!target)return;[tasks[i],tasks[target.idx]]=[tasks[target.idx],tasks[i]];save()}
-function moveTomorrow(id){const i=tasks.findIndex(t=>t.id===id);if(i<0)return;const target=shiftDate(activeDate,1),moved=normalizeTask({...tasks[i],id:uid(),start:'',end:'',actualMin:0,deferred:false,skipDate:''});let targetTasks=[];try{targetTasks=JSON.parse(localStorage.getItem(STORAGE_PREFIX+target)||'[]')||[]}catch{}targetTasks.push(moved);localStorage.setItem(STORAGE_PREFIX+target,JSON.stringify(targetTasks));tasks.splice(i,1);save();toast(`${target} へ移動しました`)}
+function startTask(id,usePrevious=false){const t=tasks.find(x=>x.id===id);if(!t||stateOf(t)==='done')return;const at=(usePrevious&&latestEnd())||nowTime();endRunning(at);t.completed=false;t.deferred=false;t.skipDate='';t.start=at;t.end='';t.actualMin=0;save()}
+function endTask(id){const t=tasks.find(x=>x.id===id);if(!t||stateOf(t)!=='running')return;t.end=nowTime();t.actualMin=elapsed(t.start,t.end);t.completed=true;save()}
+function resetTask(id){const t=tasks.find(x=>x.id===id);if(!t)return;t.start='';t.end='';t.actualMin=0;t.completed=false;t.deferred=false;t.skipDate='';save()}
+function deferTask(id){const t=tasks.find(x=>x.id===id);if(!t)return;t.start='';t.end='';t.actualMin=0;t.completed=false;t.deferred=!t.deferred;t.skipDate='';save()}
+function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);removeTaskNode(id);save()}
+function moveTask(id,delta){const i=tasks.findIndex(t=>t.id===id);if(i<0)return;const section=tasks[i].section;const peers=tasks.map((t,idx)=>({t,idx})).filter(x=>x.t.section===section);const p=peers.findIndex(x=>x.idx===i),target=peers[p+delta];if(!target)return;const otherId=tasks[target.idx].id;[tasks[i],tasks[target.idx]]=[tasks[target.idx],tasks[i]];swapTaskNodes(id,otherId);save()}
+function moveTomorrow(id){const i=tasks.findIndex(t=>t.id===id);if(i<0)return;const target=shiftDate(activeDate,1),moved=normalizeTask({...tasks[i],id:uid(),start:'',end:'',actualMin:0,completed:false,deferred:false,skipDate:''}),targetState=readStoredDate(target);targetState.tasks.push(moved);insertTaskNode(moved,targetState.nodes,targetState.tasks);writeStoredDate(target,targetState);tasks.splice(i,1);removeTaskNode(id);save();toast(`${target} へ移動しました`)}
 function statusLabel(t){const s=stateOf(t);return s==='running'?'[/]':s==='done'?'[x]':s==='deferred'?'[>]':'[ ]'}
 function span(text){const e=document.createElement('span');e.textContent=text;return e}
 function btn(text,fn,disabled=false,cls=''){const b=document.createElement('button');b.textContent=text;b.onclick=fn;b.disabled=disabled;if(cls)b.classList.add(cls);return b}
@@ -82,7 +93,6 @@ function escapeHtml(s){return String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<'
 function render(){
   $('dateBtn').innerHTML=`${activeDate}${activeDate===todayStr()?'<span class="today-mark">TODAY</span>':''}`;
   const root=$('tasks');root.innerHTML='';
-  const names=sectionNames();
   let visibleCount=0,currentSectionMarker=null,currentBlock=root;
   tasks.forEach((t,index)=>{
     if(t.section&&hiddenSections.has(t.section))return;
@@ -94,7 +104,7 @@ function render(){
   const done=tasks.filter(t=>stateOf(t)==='done').length,total=tasks.length,recorded=tasks.filter(t=>t.start&&t.end).reduce((a,t)=>a+(t.actualMin||elapsed(t.start,t.end)),0),remain=tasks.filter(t=>stateOf(t)!=='done'&&stateOf(t)!=='deferred').reduce((a,t)=>a+(Number(t.estimate)||0),0),running=tasks.find(t=>stateOf(t)==='running');
   $('doneCount').textContent=`${done}/${total}`;$('progressPct').textContent=total?`${Math.round(done/total*100)}%`:'0%';$('recordedMin').textContent=`${recorded}m`;$('remainingMin').textContent=`${remain}m`;$('currentTitle').textContent=running?running.title:'待機中';$('currentTime').textContent=running?`${running.start} → 実行中`:'--:--';$('markdownBox').value=exportMarkdown();renderSectionMenu();
 }
-function addNew(){const title=$('newTitle').value.trim();if(!title)return;const section=tasks.length?tasks[tasks.length-1].section:'';tasks.push(normalizeTask({title,estimate:Number($('newEstimate').value)||0,section}));$('newTitle').value='';$('newEstimate').value='';save();$('newTitle').focus()}
+function addNew(){const title=$('newTitle').value.trim();if(!title)return;const section=tasks.length?tasks[tasks.length-1].section:'',task=normalizeTask({title,estimate:Number($('newEstimate').value)||0,section});tasks.push(task);insertTaskNode(task);$('newTitle').value='';$('newEstimate').value='';save();$('newTitle').focus()}
 
 $('addTask').onclick=addNew;
 $('newTitle').addEventListener('keydown',e=>{if(e.key==='Enter')addNew()});
@@ -102,12 +112,12 @@ $('prevDay').onclick=()=>{activeDate=shiftDate(activeDate,-1);load()};
 $('nextDay').onclick=()=>{activeDate=shiftDate(activeDate,1);load()};
 $('todayBtn').onclick=()=>{activeDate=todayStr();load()};
 $('dateBtn').onclick=()=>{const v=prompt('日付を YYYY-MM-DD で入力',activeDate);if(/^\d{4}-\d{2}-\d{2}$/.test(v||'')){activeDate=v;load()}};
-$('carryBtn').onclick=()=>{const prev=shiftDate(activeDate,-1);let prevTasks=[];try{prevTasks=JSON.parse(localStorage.getItem(STORAGE_PREFIX+prev)||'[]')||[]}catch{}const carry=prevTasks.map(normalizeTask).filter(t=>stateOf(t)!=='done').map(t=>normalizeTask({...t,id:uid(),start:'',end:'',actualMin:0,deferred:false,skipDate:''}));if(!carry.length){toast('持ち越すタスクはありません');return}tasks.push(...carry);save();toast(`${carry.length}件を持ち越しました`)};
+$('carryBtn').onclick=()=>{const prev=shiftDate(activeDate,-1),prevState=readStoredDate(prev),carry=prevState.tasks.filter(t=>stateOf(t)!=='done').map(t=>normalizeTask({...t,id:uid(),start:'',end:'',actualMin:0,completed:false,deferred:false,skipDate:''}));if(!carry.length){toast('持ち越すタスクはありません');return}for(const t of carry){tasks.push(t);insertTaskNode(t)}save();toast(`${carry.length}件を持ち越しました`)};
 $('sectionBtn').onclick=e=>{e.stopPropagation();$('sectionMenu').classList.toggle('open')};
 document.addEventListener('click',e=>{const menu=$('sectionMenu');if(!menu.contains(e.target)&&e.target!==$('sectionBtn'))menu.classList.remove('open')});
 $('copyMdBtn').onclick=async()=>{const text=exportMarkdown();try{await navigator.clipboard.writeText(text);toast('Markdownをコピーしました')}catch{$('markdownBox').value=text;$('markdownBox').select();document.execCommand('copy');toast('Markdownをコピーしました')}};
 $('downloadMdBtn').onclick=()=>{const blob=new Blob([exportMarkdown()+'\n'],{type:'text/markdown;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${activeDate}.md`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
-$('importMdBtn').onclick=()=>{const parsed=parseMarkdown($('markdownBox').value);if(!parsed.length){toast('取り込めるタスク行がありません');return}if(tasks.length&&!confirm('現在日のタスクをMarkdown内容で置き換えますか？'))return;tasks=parsed;save();toast(`${parsed.length}件を取り込みました`)};
+$('importMdBtn').onclick=()=>{const parsed=parseMarkdown($('markdownBox').value);if(!parsed.tasks.length){toast('取り込めるタスク行がありません');return}if(tasks.length&&!confirm('現在日のタスクをMarkdown内容で置き換えますか？'))return;tasks=parsed.tasks;documentNodes=parsed.nodes;save();toast(`${tasks.length}件を取り込みました`)};
 setInterval(()=>{const running=tasks.find(t=>stateOf(t)==='running');if(running)$('currentTime').textContent=`${running.start} → ${nowTime()}`},30000);
 load();
 })();
