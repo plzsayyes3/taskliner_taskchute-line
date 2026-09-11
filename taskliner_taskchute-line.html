@@ -25,8 +25,8 @@
       "function changeEstimate(id){const t=tasks.find(x=>x.id===id);if(!t)return;const raw=prompt('見積もり（分）',String(t.estimate||0));if(raw===null)return;const value=Number(String(raw).trim());if(!Number.isFinite(value)||value<0){toast('見積もりは0以上の数値で入力してください');return}t.estimate=Math.round(value);save()}function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);removeTaskNode(id);save()}"
     );
     html=html.replace(
-      "menu.append(btn(t.deferred?'保留解除':'保留',()=>deferTask(t.id)),btn('翌日',()=>moveTomorrow(t.id)))",
-      "menu.append(btn('見積もり変更',()=>changeEstimate(t.id)),btn(t.deferred?'保留解除':'保留',()=>deferTask(t.id)),btn('翌日',()=>moveTomorrow(t.id)))"
+      "menu.append(btn('終了見込み変更',()=>changeExpectedEnd(t.id)),btn(t.deferred?'保留解除':'保留',()=>deferTask(t.id)),btn('翌日',()=>moveTomorrow(t.id)))",
+      "menu.append(btn('見積もり変更',()=>changeEstimate(t.id)),btn('終了見込み変更',()=>changeExpectedEnd(t.id)),btn(t.deferred?'保留解除':'保留',()=>deferTask(t.id)),btn('翌日',()=>moveTomorrow(t.id)))"
     );
     html=html.replace(
       "function addNew(){const title=$('newTitle').value.trim();if(!title)return;const section=tasks.length?tasks[tasks.length-1].section:'';const task=normalizeTask({title,estimate:Number($('newEstimate').value)||0,section});tasks.push(task);insertTaskNode(task);$('newTitle').value='';$('newEstimate').value='';save();$('newTitle').focus()}",
