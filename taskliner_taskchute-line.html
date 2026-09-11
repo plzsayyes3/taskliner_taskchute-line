@@ -19,6 +19,7 @@
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     let html=await response.text();
 
+    // Runtime feature patches kept outside app.html so the Markdown/data core stays stable.
     html=html.replace(
       "function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);removeTaskNode(id);save()}",
       "function changeEstimate(id){const t=tasks.find(x=>x.id===id);if(!t)return;const raw=prompt('見積もり（分）',String(t.estimate||0));if(raw===null)return;const value=Number(String(raw).trim());if(!Number.isFinite(value)||value<0){toast('見積もりは0以上の数値で入力してください');return}t.estimate=Math.round(value);save()}function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);removeTaskNode(id);save()}"
@@ -31,188 +32,62 @@
       "function addNew(){const title=$('newTitle').value.trim();if(!title)return;const section=tasks.length?tasks[tasks.length-1].section:'';const task=normalizeTask({title,estimate:Number($('newEstimate').value)||0,section});tasks.push(task);insertTaskNode(task);$('newTitle').value='';$('newEstimate').value='';save();$('newTitle').focus()}",
       "function addNew(){const title=$('newTitle').value.trim();if(!title)return;const task=normalizeTask({title,estimate:Number($('newEstimate').value)||0,section:''});tasks.unshift(task);let insertAt=documentNodes.findIndex(n=>n.type==='task'||(n.type==='raw'&&/^\\s*##\\s+/.test(n.text)));if(insertAt<0)insertAt=documentNodes.length;documentNodes.splice(insertAt,0,{type:'task',id:task.id});$('newTitle').value='';$('newEstimate').value='';save();$('newTitle').focus()}"
     );
+    html=html.replace(
+      "function endTaskAt(id){const t=tasks.find(x=>x.id===id);if(!t||stateOf(t)!=='running')return;const at=askClock('終了時刻',nowTime());if(at===null)return;endTask(id,at)}",
+      "function interruptTask(id,explicitAt=''){const i=tasks.findIndex(x=>x.id===id);if(i<0)return;const t=tasks[i];if(stateOf(t)!=='running')return;const at=explicitAt||nowTime();t.end=at;t.actualMin=elapsed(t.start,t.end);t.completed=true;const remaining=t.estimate>0?Math.max(t.estimate-t.actualMin,0):0;const continuation=normalizeTask({...t,id:uid(),estimate:remaining,start:'',end:'',actualMin:0,completed:false,deferred:false,skipDate:'',childLines:[...(t.childLines||[])]});tasks.splice(i+1,0,continuation);const nodeIndex=documentNodes.findIndex(n=>n.type==='task'&&n.id===id);if(nodeIndex>=0)documentNodes.splice(nodeIndex+1,0,{type:'task',id:continuation.id});else insertTaskNode(continuation);save();toast(t.estimate>0?`中断しました。残り見積 ${remaining}m`:'中断しました。見積もりなしで継続タスクを作成しました')}function endTaskAt(id){const t=tasks.find(x=>x.id===id);if(!t||stateOf(t)!=='running')return;const dialog=$('tasklinerEndDialog');if(!dialog||typeof dialog.showModal!=='function'){const at=askClock('終了時刻',nowTime());if(at===null)return;if(confirm('中断として処理しますか？'))interruptTask(id,at);else endTask(id,at);return}const input=$('tasklinerEndTime'),check=$('tasklinerEndInterrupt'),confirmBtn=$('tasklinerEndConfirm');input.value=nowTime();check.checked=false;confirmBtn.onclick=e=>{e.preventDefault();const at=normalizeClockInput(input.value);if(!at){toast('時刻は HH:MM で入力してください');return}const interrupted=check.checked;dialog.close();if(interrupted)interruptTask(id,at);else endTask(id,at)};dialog.showModal()}"
+    );
+    html=html.replace(
+      "if(s==='running')actions.append(btn('終了',()=>endTask(t.id),false,'primary-action'),btn('終了時刻',()=>endTaskAt(t.id)));",
+      "if(s==='running')actions.append(btn('終了',()=>endTask(t.id),false,'primary-action'),btn('中断',()=>interruptTask(t.id),false,'interrupt-action'),btn('終了時刻',()=>endTaskAt(t.id)));"
+    );
+
+    const dialogStyle=`<style id="taskliner-end-dialog-style">
+      .taskliner-time-dialog{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--panel);color:var(--text);box-shadow:0 20px 60px rgba(0,0,0,.2);width:min(340px,calc(100vw - 28px))}
+      .taskliner-time-dialog::backdrop{background:rgba(20,20,20,.28);backdrop-filter:blur(2px)}
+      .taskliner-time-form{padding:16px;display:flex;flex-direction:column;gap:13px}
+      .taskliner-time-title{font-size:14px;font-weight:800}
+      .taskliner-time-field{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}
+      .taskliner-time-field input[type=time]{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:7px 9px;font:inherit;color:var(--text)}
+      .taskliner-time-check{display:flex;align-items:center;gap:8px;font-size:12px;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--bg)}
+      .taskliner-time-check input{width:17px;height:17px}
+      .taskliner-time-actions{display:flex;justify-content:flex-end;gap:7px}
+      .taskliner-time-actions button{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 11px;font-size:12px}
+      .taskliner-time-actions .primary{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important}
+    </style>`;
+    html=html.replace('</head>',dialogStyle+'</head>');
+    html=html.replace(
+      '<div id="toast" class="toast"></div>',
+      '<div id="toast" class="toast"></div><dialog id="tasklinerEndDialog" class="taskliner-time-dialog"><form method="dialog" class="taskliner-time-form"><div class="taskliner-time-title">終了時刻</div><label class="taskliner-time-field"><span>時刻</span><input id="tasklinerEndTime" type="time" required></label><label class="taskliner-time-check"><input id="tasklinerEndInterrupt" type="checkbox"><span>中断として処理</span></label><div class="taskliner-time-actions"><button value="cancel">キャンセル</button><button id="tasklinerEndConfirm" class="primary" value="default">確定</button></div></form></dialog>'
+    );
 
     if(theme==='terminal'){
       const terminalStyle=`<style id="taskliner-terminal-theme">
-        :root{
-          --bg:#fff!important;
-          --panel:#fff!important;
-          --text:#111!important;
-          --muted:#555!important;
-          --line:#111!important;
-          --accent:#111!important;
-          --danger:#111!important;
-          --running:#f3f3f3!important;
-          --done:#fafafa!important;
-          --deferred:#fafafa!important;
-          --shadow:none!important;
-        }
-        html{color-scheme:light!important}
-        body{background:#fff!important;color:#111!important;letter-spacing:.005em}
-        .app{max-width:1180px!important;padding-top:8px!important}
-        .top{background:#fff!important;backdrop-filter:none!important;border-bottom:1px solid #111!important;padding-bottom:8px!important}
-        .brand{font-weight:800!important;letter-spacing:.04em!important}
-        .clock{font-weight:600!important}
-        button,input,textarea,.workspace,.task,.section-menu,.raw textarea,.task-more summary{
-          border-radius:0!important;
-          box-shadow:none!important;
-        }
-        .datebar button,.toolbar button,.task-actions button,.status-btn,.section-head button,.section-menu button,.current-end{
-          border-color:#111!important;
-          background:#fff!important;
-          color:#111!important;
-        }
-        .date-btn{font-weight:800!important}
-        .summary-line{color:#555!important}
-        .summary-line b{color:#111!important}
-        .workspace{border:1px solid #111!important;background:#fff!important}
-        .workspace .current{border-color:#111!important}
-        .current .label,.add-label{color:#111!important;text-transform:uppercase;letter-spacing:.08em!important}
-        .current-elapsed,.current .time{color:#444!important}
-        .add input{background:#fff!important;border-color:#111!important}
-        .primary{background:#111!important;color:#fff!important;border:1px solid #111!important}
-        .toolbar button.active{background:#111!important;color:#fff!important}
-        .task{border:1px solid #111!important;background:#fff!important}
-        .task.running{background:#f4f4f4!important;box-shadow:inset 4px 0 0 #111!important}
-        .task.done{background:#fafafa!important;opacity:.68!important}
-        .task.deferred{background:#fff!important;border-style:dashed!important}
-        .status-btn{border:0!important;background:transparent!important}
-        .task.running .status-btn,.task.done .status-btn{color:#111!important}
-        .task-meta{color:#555!important}
-        .task-actions .primary-action{border:1px solid #111!important;background:#111!important;color:#fff!important}
-        .task-actions .delete-action{color:#111!important}
-        .task-more summary{border-color:#111!important;background:#fff!important;color:#111!important}
-        .section-title{color:#111!important;text-transform:uppercase;letter-spacing:.06em!important}
-        .section-menu{border-color:#111!important}
-        .raw{border-color:#111!important}
-        .raw textarea{border-color:#111!important;background:#fff!important}
-        .empty{border-color:#111!important;border-radius:0!important}
+        :root{--bg:#fff!important;--panel:#fff!important;--text:#111!important;--muted:#555!important;--line:#111!important;--accent:#111!important;--danger:#111!important;--running:#f3f3f3!important;--done:#fafafa!important;--deferred:#fafafa!important;--shadow:none!important}
+        html{color-scheme:light!important}body{background:#fff!important;color:#111!important;letter-spacing:.005em}.app{max-width:1180px!important;padding-top:8px!important}.top{background:#fff!important;backdrop-filter:none!important;border-bottom:1px solid #111!important;padding-bottom:8px!important}.brand{font-weight:800!important;letter-spacing:.04em!important}.clock{font-weight:600!important}
+        button,input,textarea,.workspace,.task,.section-menu,.raw textarea,.task-more summary,.taskliner-time-dialog{border-radius:0!important;box-shadow:none!important}.datebar button,.toolbar button,.task-actions button,.status-btn,.section-head button,.section-menu button,.current-end{border-color:#111!important;background:#fff!important;color:#111!important}.date-btn{font-weight:800!important}.summary-line{color:#555!important}.summary-line b{color:#111!important}.workspace{border:1px solid #111!important;background:#fff!important}.workspace .current{border-color:#111!important}.current .label,.add-label{color:#111!important;text-transform:uppercase;letter-spacing:.08em!important}.current-elapsed,.current .time{color:#444!important}.add input{background:#fff!important;border-color:#111!important}.primary{background:#111!important;color:#fff!important;border:1px solid #111!important}.toolbar button.active{background:#111!important;color:#fff!important}.task{border:1px solid #111!important;background:#fff!important}.task.running{background:#f4f4f4!important;box-shadow:inset 4px 0 0 #111!important}.task.done{background:#fafafa!important;opacity:.68!important}.task.deferred{background:#fff!important;border-style:dashed!important}.status-btn{border:0!important;background:transparent!important}.task.running .status-btn,.task.done .status-btn{color:#111!important}.task-meta{color:#555!important}.task-actions .primary-action{border:1px solid #111!important;background:#111!important;color:#fff!important}.task-actions .delete-action{color:#111!important}.task-more summary{border-color:#111!important;background:#fff!important;color:#111!important}.section-title{color:#111!important;text-transform:uppercase;letter-spacing:.06em!important}.section-menu{border-color:#111!important}.raw{border-color:#111!important}.raw textarea{border-color:#111!important;background:#fff!important}.empty{border-color:#111!important;border-radius:0!important}.taskliner-time-dialog,.taskliner-time-field input[type=time],.taskliner-time-check,.taskliner-time-actions button{border-color:#111!important;background:#fff!important;color:#111!important}
       </style>`;
       html=html.replace('</head>',terminalStyle+'</head>');
     }
 
     const heatStyle=`<style id="taskliner-time-heat-style">
-      .task.running{transition:background .7s linear,border-color .25s ease,color .25s ease!important}
-      .task.running.time-no-estimate{box-shadow:none!important}
-      .task.running.time-progress-dark,
-      .task.running.time-progress-dark .task-title,
-      .task.running.time-progress-dark .task-meta,
-      .task.running.time-progress-dark .status-btn{color:#fff!important}
-      .task.running.time-progress-dark .task-actions button,
-      .task.running.time-progress-dark .task-more summary{
-        color:#fff!important;
-        border-color:rgba(255,255,255,.55)!important;
-        background:rgba(0,0,0,.08)!important;
-      }
-      .task.running.time-progress-dark .task-actions .primary-action{
-        color:#2a2725!important;
-        background:rgba(255,255,255,.9)!important;
-        border-color:rgba(255,255,255,.9)!important;
-      }
-      .task.running.time-progress-dark .task-actions .delete-action{color:#fff!important}
+      .task.running{transition:background .7s linear,border-color .25s ease,color .25s ease!important}.task.running.time-no-estimate{box-shadow:none!important}.task.running.time-progress-dark,.task.running.time-progress-dark .task-title,.task.running.time-progress-dark .task-meta,.task.running.time-progress-dark .status-btn{color:#fff!important}.task.running.time-progress-dark .task-actions button,.task.running.time-progress-dark .task-more summary{color:#fff!important;border-color:rgba(255,255,255,.55)!important;background:rgba(0,0,0,.08)!important}.task.running.time-progress-dark .task-actions .primary-action{color:#2a2725!important;background:rgba(255,255,255,.9)!important;border-color:rgba(255,255,255,.9)!important}.task.running.time-progress-dark .task-actions .delete-action{color:#fff!important}
     </style>`;
     html=html.replace('</head>',heatStyle+'</head>');
 
     const heatScript=`<script id="taskliner-time-heat-script">
-      (()=>{
-        const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
-        const mix=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));
-        const rgba=(v,a=.72)=>\`rgba(\${v[0]}, \${v[1]}, \${v[2]}, \${a})\`;
-        const overStops=[[1,[205,171,164]],[1.5,[151,127,116]],[2,[78,74,71]]];
-        function overColor(ratio){const r=clamp(ratio,1,2);for(let i=0;i<overStops.length-1;i++){const [aPos,aColor]=overStops[i],[bPos,bColor]=overStops[i+1];if(r<=bPos)return mix(aColor,bColor,(r-aPos)/(bPos-aPos))}return overStops[overStops.length-1][1]}
-        function elapsedSeconds(h,m){const d=new Date();let n=d.getHours()*3600+d.getMinutes()*60+d.getSeconds()-(h*3600+m*60);if(n<0)n+=86400;return n}
-        function clearProgress(row){row.style.removeProperty('background');row.style.removeProperty('border');row.classList.remove('time-no-estimate','time-progress-dark');delete row.dataset.timeRatio;delete row.dataset.progress}
-        function updateProgress(){
-          document.querySelectorAll('.task').forEach(row=>{
-            if(!row.classList.contains('running')){clearProgress(row);return}
-            const meta=row.querySelector('.task-meta')?.textContent||'';
-            const estimateMatch=meta.match(/見積\\s*(\\d+)m/);
-            const startMatch=meta.match(/開始\\s*(\\d{1,2}):(\\d{2})/);
-            const estimate=estimateMatch?Number(estimateMatch[1]):0;
-            if(!estimate){
-              row.style.removeProperty('background');
-              row.style.setProperty('border','2px solid rgba(110,101,94,.58)','important');
-              row.classList.add('time-no-estimate');
-              row.classList.remove('time-progress-dark');
-              delete row.dataset.timeRatio;delete row.dataset.progress;
-              return
-            }
-            if(!startMatch){clearProgress(row);return}
-            const seconds=elapsedSeconds(Number(startMatch[1]),Number(startMatch[2]));
-            const ratio=seconds/(estimate*60);
-            const width=clamp(ratio,0,1)*100;
-            let fill;
-            if(ratio<=1){
-              const color=mix([241,232,230],[218,179,173],clamp(ratio,0,1));
-              fill=rgba(color,.72)
-            }else{
-              fill=rgba(overColor(ratio),ratio>=1.75?.82:.74)
-            }
-            row.dataset.timeRatio=ratio.toFixed(3);
-            row.dataset.progress=Math.round(ratio*100)+'%';
-            row.style.setProperty('border','1px solid var(--line)','important');
-            row.style.setProperty('background',\`linear-gradient(to right, \${fill} 0%, \${fill} \${width}%, transparent \${width}%, transparent 100%), var(--panel)\`,'important');
-            row.classList.remove('time-no-estimate');
-            row.classList.toggle('time-progress-dark',ratio>=1.78)
-          })
-        }
-        setInterval(updateProgress,1000);
-        requestAnimationFrame(updateProgress);
-        const root=document.getElementById('tasks');
-        if(root)new MutationObserver(updateProgress).observe(root,{childList:true,subtree:true})
-      })();
+      (()=>{const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));const mix=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));const rgba=(v,a=.72)=>\`rgba(\${v[0]}, \${v[1]}, \${v[2]}, \${a})\`;const overStops=[[1,[205,171,164]],[1.5,[151,127,116]],[2,[78,74,71]]];function overColor(ratio){const r=clamp(ratio,1,2);for(let i=0;i<overStops.length-1;i++){const[aPos,aColor]=overStops[i],[bPos,bColor]=overStops[i+1];if(r<=bPos)return mix(aColor,bColor,(r-aPos)/(bPos-aPos))}return overStops[overStops.length-1][1]}function elapsedSeconds(h,m){const d=new Date();let n=d.getHours()*3600+d.getMinutes()*60+d.getSeconds()-(h*3600+m*60);if(n<0)n+=86400;return n}function clearProgress(row){row.style.removeProperty('background');row.style.removeProperty('border');row.classList.remove('time-no-estimate','time-progress-dark');delete row.dataset.timeRatio;delete row.dataset.progress}function updateProgress(){document.querySelectorAll('.task').forEach(row=>{if(!row.classList.contains('running')){clearProgress(row);return}const meta=row.querySelector('.task-meta')?.textContent||'';const estimateMatch=meta.match(/見積\\s*(\\d+)m/);const startMatch=meta.match(/開始\\s*(\\d{1,2}):(\\d{2})/);const estimate=estimateMatch?Number(estimateMatch[1]):0;if(!estimate){row.style.removeProperty('background');row.style.setProperty('border','2px solid rgba(110,101,94,.58)','important');row.classList.add('time-no-estimate');row.classList.remove('time-progress-dark');delete row.dataset.timeRatio;delete row.dataset.progress;return}if(!startMatch){clearProgress(row);return}const seconds=elapsedSeconds(Number(startMatch[1]),Number(startMatch[2]));const ratio=seconds/(estimate*60);const width=clamp(ratio,0,1)*100;let fill;if(ratio<=1){const color=mix([241,232,230],[218,179,173],clamp(ratio,0,1));fill=rgba(color,.72)}else fill=rgba(overColor(ratio),ratio>=1.75?.82:.74);row.dataset.timeRatio=ratio.toFixed(3);row.dataset.progress=Math.round(ratio*100)+'%';row.style.setProperty('border','1px solid var(--line)','important');row.style.setProperty('background',\`linear-gradient(to right, \${fill} 0%, \${fill} \${width}%, transparent \${width}%, transparent 100%), var(--panel)\`,'important');row.classList.remove('time-no-estimate');row.classList.toggle('time-progress-dark',ratio>=1.78)})}setInterval(updateProgress,1000);requestAnimationFrame(updateProgress);const root=document.getElementById('tasks');if(root)new MutationObserver(updateProgress).observe(root,{childList:true,subtree:true})})();
     <\/script>`;
     html=html.replace('</body>',heatScript+'</body>');
 
     const bridgeScript=`<script id="taskliner-theme-bridge">
-      (()=>{
-        const THEME_KEY='taskliner_theme_v1';
-        const CONFIG_KEY='taskliner_github_sync_config_v1';
-        const API_COOLDOWN_KEY='taskliner_github_api_cooldown_until_v1';
-        const theme=localStorage.getItem(THEME_KEY)||'soft';
-        try{
-          const pw=window.parent;
-          const pd=pw.document;
-          try{
-            const c=JSON.parse(pw.localStorage.getItem(CONFIG_KEY)||'{}');
-            if(!c.branch||c.branch==='task-data'){c.branch='main';pw.localStorage.setItem(CONFIG_KEY,JSON.stringify(c))}
-            const branchInput=pd.getElementById('ghBranch');
-            if(branchInput&&(!branchInput.value||branchInput.value==='task-data'))branchInput.value='main';
-          }catch(error){}
-          if(!pw.__tasklinerGithubApiGuard){
-            const rawFetch=pw.fetch.bind(pw);const cache=new Map();let lastGithubRequestAt=0;const CACHE_MS=15*60*1000;const MIN_REQUEST_GAP=500;const sleep=ms=>new Promise(resolve=>pw.setTimeout(resolve,ms));
-            const syntheticLimit=until=>new pw.Response(JSON.stringify({message:\`GitHub APIを一時休止中です。\${new Date(until).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}頃に再試行してください。\`}),{status:429,headers:{'Content-Type':'application/json'}});
-            const isGithubUrl=value=>{try{return new URL(typeof value==='string'?value:value.url).hostname==='api.github.com'}catch{return false}};
-            const methodOf=(input,init)=>String(init?.method||input?.method||'GET').toUpperCase();
-            const cacheable=url=>{try{const u=new URL(url);return /^\\/repos\\/[^/]+\\/[^/]+$/.test(u.pathname)||/^\\/repos\\/[^/]+\\/[^/]+\\/branches\\/[^/]+$/.test(u.pathname)}catch{return false}};
-            pw.fetch=async function(input,init){if(!isGithubUrl(input))return rawFetch(input,init);const now=Date.now();const cooldownUntil=Number(pw.localStorage.getItem(API_COOLDOWN_KEY)||0);if(cooldownUntil>now)return syntheticLimit(cooldownUntil);const url=typeof input==='string'?input:input.url;const method=methodOf(input,init);const key=method+' '+url;if(method==='GET'&&cacheable(url)){const hit=cache.get(key);if(hit&&now-hit.at<CACHE_MS)return new pw.Response(hit.body,{status:hit.status,headers:hit.headers})}const gap=Date.now()-lastGithubRequestAt;if(gap<MIN_REQUEST_GAP)await sleep(MIN_REQUEST_GAP-gap);const response=await rawFetch(input,init);lastGithubRequestAt=Date.now();let limited=response.status===429||response.headers.get('x-ratelimit-remaining')==='0';if(response.status===403&&!limited){try{limited=/rate limit/i.test(await response.clone().text())}catch(error){}}if(limited){const reset=Number(response.headers.get('x-ratelimit-reset')||0)*1000;const until=Math.max(Date.now()+60*1000,reset||Date.now()+15*60*1000)+5000;pw.localStorage.setItem(API_COOLDOWN_KEY,String(until))}if(method==='GET'&&cacheable(url)&&response.ok){try{const body=await response.clone().text();cache.set(key,{at:Date.now(),body,status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}})}catch(error){}}return response};
-            pw.__tasklinerGithubApiGuard=true;
-          }
-          pd.documentElement.classList.toggle('taskliner-terminal',theme==='terminal');
-          if(!pd.getElementById('taskliner-parent-theme-style')){
-            const style=pd.createElement('style');style.id='taskliner-parent-theme-style';style.textContent=\`
-              .taskliner-theme-settings{margin:0 0 14px;padding:0 0 13px;border-bottom:1px solid #eceeea}.taskliner-theme-choice{display:grid;grid-template-columns:1fr 1fr;gap:7px}.taskliner-theme-choice button{border:1px solid #d9ddd7;background:#f7f8f5;color:#20211f;border-radius:9px;padding:9px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}.taskliner-theme-choice button.active{background:#20211f;color:#fff;border-color:#20211f}.taskliner-theme-note{margin-top:6px;color:#777d75;font-size:10px;line-height:1.45}html.taskliner-terminal,html.taskliner-terminal body{background:#fff!important;color:#111!important}html.taskliner-terminal .sync-open,html.taskliner-terminal .quick-save,html.taskliner-terminal .auto-save-state,html.taskliner-terminal .sync-panel,html.taskliner-terminal .sync-field input,html.taskliner-terminal .sync-actions button{border-radius:0!important;box-shadow:none!important;border-color:#111!important;background:#fff!important;color:#111!important;backdrop-filter:none!important}html.taskliner-terminal .sync-actions .primary,html.taskliner-terminal .taskliner-theme-choice button.active{background:#111!important;color:#fff!important;border-color:#111!important}html.taskliner-terminal .sync-panel{border:1px solid #111!important}html.taskliner-terminal .sync-note,html.taskliner-terminal .taskliner-theme-settings{border-color:#111!important}html.taskliner-terminal .sync-open{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important}\`;pd.head.append(style)
-          }
-          const panel=pd.getElementById('syncPanel');
-          if(panel&&!pd.getElementById('tasklinerThemeSettings')){
-            const box=pd.createElement('div');box.id='tasklinerThemeSettings';box.className='taskliner-theme-settings';const title=pd.createElement('div');title.className='settings-section-title';title.textContent='表示テーマ';const choices=pd.createElement('div');choices.className='taskliner-theme-choice';const soft=pd.createElement('button');soft.type='button';soft.dataset.theme='soft';soft.textContent='Soft';const terminal=pd.createElement('button');terminal.type='button';terminal.dataset.theme='terminal';terminal.textContent='Terminal';const note=pd.createElement('div');note.className='taskliner-theme-note';note.textContent='Soft = 現行の柔らかいUI / Terminal = 白黒・高コントラストの機械的UI';choices.append(soft,terminal);box.append(title,choices,note);const syncTitle=panel.querySelector('.settings-section-title');if(syncTitle)panel.insertBefore(box,syncTitle);else panel.append(box);choices.addEventListener('click',event=>{const button=event.target.closest('button[data-theme]');if(!button)return;localStorage.setItem(THEME_KEY,button.dataset.theme);window.location.reload()})
-          }
-          const settings=pd.getElementById('tasklinerThemeSettings');if(settings)settings.querySelectorAll('button[data-theme]').forEach(button=>button.classList.toggle('active',button.dataset.theme===theme));
-        }catch(error){}
-      })();
+      (()=>{const THEME_KEY='taskliner_theme_v1',CONFIG_KEY='taskliner_github_sync_config_v1',API_COOLDOWN_KEY='taskliner_github_api_cooldown_until_v1',theme=localStorage.getItem(THEME_KEY)||'soft';function install(){try{const pw=window.parent,pd=pw.document,panel=pd.getElementById('syncPanel');if(!panel){setTimeout(install,50);return}try{const c=JSON.parse(pw.localStorage.getItem(CONFIG_KEY)||'{}');if(!c.branch||c.branch==='task-data'){c.branch='main';pw.localStorage.setItem(CONFIG_KEY,JSON.stringify(c))}const branchInput=pd.getElementById('ghBranch');if(branchInput&&(!branchInput.value||branchInput.value==='task-data'))branchInput.value='main'}catch(error){}if(!pw.__tasklinerGithubApiGuard){const rawFetch=pw.fetch.bind(pw),cache=new Map();let lastGithubRequestAt=0;const CACHE_MS=15*60*1000,MIN_REQUEST_GAP=500,sleep=ms=>new Promise(r=>pw.setTimeout(r,ms)),syntheticLimit=until=>new pw.Response(JSON.stringify({message:\`GitHub APIを一時休止中です。\${new Date(until).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}頃に再試行してください。\`}),{status:429,headers:{'Content-Type':'application/json'}}),isGithubUrl=value=>{try{return new URL(typeof value==='string'?value:value.url).hostname==='api.github.com'}catch{return false}},methodOf=(input,init)=>String(init?.method||input?.method||'GET').toUpperCase(),cacheable=url=>{try{const u=new URL(url);return /^\\/repos\\/[^/]+\\/[^/]+$/.test(u.pathname)||/^\\/repos\\/[^/]+\\/[^/]+\\/branches\\/[^/]+$/.test(u.pathname)}catch{return false}};pw.fetch=async function(input,init){if(!isGithubUrl(input))return rawFetch(input,init);const now=Date.now(),cooldownUntil=Number(pw.localStorage.getItem(API_COOLDOWN_KEY)||0);if(cooldownUntil>now)return syntheticLimit(cooldownUntil);const url=typeof input==='string'?input:input.url,method=methodOf(input,init),key=method+' '+url;if(method==='GET'&&cacheable(url)){const hit=cache.get(key);if(hit&&now-hit.at<CACHE_MS)return new pw.Response(hit.body,{status:hit.status,headers:hit.headers})}const gap=Date.now()-lastGithubRequestAt;if(gap<MIN_REQUEST_GAP)await sleep(MIN_REQUEST_GAP-gap);const response=await rawFetch(input,init);lastGithubRequestAt=Date.now();let limited=response.status===429||response.headers.get('x-ratelimit-remaining')==='0';if(response.status===403&&!limited){try{limited=/rate limit/i.test(await response.clone().text())}catch(error){}}if(limited){const reset=Number(response.headers.get('x-ratelimit-reset')||0)*1000,until=Math.max(Date.now()+60000,reset||Date.now()+900000)+5000;pw.localStorage.setItem(API_COOLDOWN_KEY,String(until))}if(method==='GET'&&cacheable(url)&&response.ok){try{const body=await response.clone().text();cache.set(key,{at:Date.now(),body,status:response.status,headers:{'Content-Type':response.headers.get('content-type')||'application/json'}})}catch(error){}}return response};pw.__tasklinerGithubApiGuard=true}pd.documentElement.classList.toggle('taskliner-terminal',theme==='terminal');if(!pd.getElementById('taskliner-parent-theme-style')){const style=pd.createElement('style');style.id='taskliner-parent-theme-style';style.textContent=\`.taskliner-theme-settings{margin:0 0 14px;padding:0 0 13px;border-bottom:1px solid #eceeea}.taskliner-theme-choice{display:grid;grid-template-columns:1fr 1fr;gap:7px}.taskliner-theme-choice button{border:1px solid #d9ddd7;background:#f7f8f5;color:#20211f;border-radius:9px;padding:9px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}.taskliner-theme-choice button.active{background:#20211f;color:#fff;border-color:#20211f}.taskliner-theme-note{margin-top:6px;color:#777d75;font-size:10px;line-height:1.45}html.taskliner-terminal,html.taskliner-terminal body{background:#fff!important;color:#111!important}html.taskliner-terminal .sync-open,html.taskliner-terminal .quick-save,html.taskliner-terminal .auto-save-state,html.taskliner-terminal .sync-panel,html.taskliner-terminal .sync-field input,html.taskliner-terminal .sync-actions button{border-radius:0!important;box-shadow:none!important;border-color:#111!important;background:#fff!important;color:#111!important;backdrop-filter:none!important}html.taskliner-terminal .sync-actions .primary,html.taskliner-terminal .taskliner-theme-choice button.active{background:#111!important;color:#fff!important;border-color:#111!important}html.taskliner-terminal .sync-panel{border:1px solid #111!important}html.taskliner-terminal .sync-note,html.taskliner-terminal .taskliner-theme-settings{border-color:#111!important}html.taskliner-terminal .sync-open{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important}\`;pd.head.append(style)}if(!pd.getElementById('tasklinerThemeSettings')){const box=pd.createElement('div');box.id='tasklinerThemeSettings';box.className='taskliner-theme-settings';const title=pd.createElement('div');title.className='settings-section-title';title.textContent='表示テーマ';const choices=pd.createElement('div');choices.className='taskliner-theme-choice';for(const [value,label] of [['soft','Soft'],['terminal','Terminal']]){const b=pd.createElement('button');b.type='button';b.dataset.theme=value;b.textContent=label;choices.append(b)}const note=pd.createElement('div');note.className='taskliner-theme-note';note.textContent='Soft = 現行の柔らかいUI / Terminal = 白黒・高コントラストの機械的UI';box.append(title,choices,note);const syncTitle=panel.querySelector('.settings-section-title');if(syncTitle)panel.insertBefore(box,syncTitle);else panel.append(box);choices.addEventListener('click',event=>{const button=event.target.closest('button[data-theme]');if(!button)return;localStorage.setItem(THEME_KEY,button.dataset.theme);window.location.reload()})}const settings=pd.getElementById('tasklinerThemeSettings');if(settings)settings.querySelectorAll('button[data-theme]').forEach(button=>button.classList.toggle('active',button.dataset.theme===theme))}catch(error){}}install()})();
     <\/script>`;
     html=html.replace('</body>',bridgeScript+'</body>');
 
-    document.open();
-    document.write(html);
-    document.close();
-  }catch(error){
-    document.body.innerHTML=`<p>TaskLinerの読み込みに失敗しました: ${String(error.message||error)}</p>`;
-  }
+    document.open();document.write(html);document.close();
+  }catch(error){document.body.innerHTML=`<p>TaskLinerの読み込みに失敗しました: ${String(error.message||error)}</p>`}
 })();
 </script>
 </head>
-<body>
-<p>TaskLinerを読み込んでいます…</p>
-</body>
+<body><p>TaskLinerを読み込んでいます…</p></body>
 </html>
