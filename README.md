@@ -7,7 +7,7 @@ TaskLiner / taskchute-line の考え方を、Obsidian プラグインではな�
 - `index.html` — GitHub Pages の入口。TaskLiner本体を表示し、設定UIを重ねる
 - `app.html` — TaskLinerのビュー・操作本体
 - `taskliner_taskchute-line.html` — 直接アクセス時に `index.html` へ戻す互換入口
-- GitHub同期の既定保存先 — `plzsayyes3/mynotebook` の `task-data` branch / `09_taskchute`
+- GitHub同期の既定保存先 — `plzsayyes3/mynotebook` の `main` branch / `09_taskchute`
 
 ## 現在できること
 
@@ -108,7 +108,7 @@ GitHub同期を使う場合は、画面右下の `⚙` を開き、`GitHub同期
 
 ```text
 Repository: plzsayyes3/mynotebook
-Branch: task-data
+Branch: main
 Folder: 09_taskchute
 ```
 
@@ -124,7 +124,7 @@ Folder: 09_taskchute
 09_taskchute/2026-09-10.md
 ```
 
-HTML本体を置く `plzsayyes3/taskliner_taskchute-line` の `main` と、タスクデータを置く `plzsayyes3/mynotebook` の `task-data` branch を分離しています。そのため、タスク保存のたびにGitHub Pagesを再デプロイしません。
+タスクデータは、Obsidian / スマホ側と同じ `plzsayyes3/mynotebook` の `main` branch を正本として扱います。以前使っていた `task-data` branch は互換用の旧保存先であり、新規保存には使いません。HTML本体は別Repositoryの `plzsayyes3/taskliner_taskchute-line` にあるため、`mynotebook/main` のタスク更新でTaskLinerのGitHub Pagesが再デプロイされることはありません。
 
 ### GitHub token
 
@@ -170,7 +170,7 @@ HTML本体の `plzsayyes3/taskliner_taskchute-line` は public repository です
 
 ### 既存Markdownの保持
 
-`mynotebook/task-data/09_taskchute` の既存MarkdownをHTML版で扱っても、タスクとして解釈しない行を捨てないようにしています。
+`mynotebook/main/09_taskchute` の既存MarkdownをHTML版で扱っても、タスクとして解釈しない行を捨てないようにしています。
 
 保持対象には、次のような内容を含みます。
 
