@@ -81,5 +81,6 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 $('quickPull').onclick=loadRemote;$('quickSave').onclick=()=>{const date=activeDate();if(!dirtyDates.has(date)){saveState('保存済み');status('変更はありません');return}saveRemote({interactive:true,reason:'manual'})};$('syncOpen').onclick=()=>{panel.classList.add('open');restoreConfig()};$('syncClose').onclick=()=>panel.classList.remove('open');$('ghCheck').onclick=check;$('ghLoad').onclick=loadRemote;$('ghSave').onclick=()=>saveRemote({interactive:true,reason:'manual'});$('ghForget').onclick=()=>{localStorage.removeItem(TOKEN_KEY);$('ghToken').value='';status('Tokenを消去しました')};['ghRepo','ghBranch','ghFolder'].forEach(id=>$(id).addEventListener('change',()=>{saveConfig();knownSha.clear();$('repoPrivacy').className='';$('repoPrivacy').textContent='RepositoryとBranchの状態は「接続確認」で確認します。'}));$('ghToken').addEventListener('change',saveConfig);restoreConfig();if($('ghRepo').value.trim()==='plzsayyes3/mynotebook'&&$('ghBranch').value.trim()==='task-data'&&$('ghFolder').value.trim()==='09_taskchute'){$('ghBranch').value='main';saveConfig()}try{if(frame.contentDocument&&frame.contentDocument.readyState==='complete')bindFrame()}catch{}
 })();
 </script>
+<script src="./wiki-preview.js"></script>
 </body>
 </html>
