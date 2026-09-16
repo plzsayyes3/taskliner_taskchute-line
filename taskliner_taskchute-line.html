@@ -22,7 +22,7 @@
     // Runtime feature patches kept outside app.html so the Markdown/data core stays stable.
     html=html.replace(
       "function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);removeTaskNode(id);save()}",
-      "function changeEstimate(id){const t=tasks.find(x=>x.id===id);if(!t)return;const raw=prompt('見積もり（分）',String(t.estimate||0));if(raw===null)return;const value=Number(String(raw).trim());if(!Number.isFinite(value)||value<0){toast('見積もりは0以上の数値で入力してください');return}t.estimate=Math.round(value);save()}function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);removeTaskNode(id);save()}"
+      "function childMemoParts(raw){const source=String(raw||'');const m=source.match(/^(\\s+)([-*+]|\\d+\\.)\\s+(.*)$/);if(m)return{prefix:m[1]+m[2]+' ',marker:m[2],text:m[3]};const indent=(source.match(/^(\\s+)/)||[])[1]||'\\t';return{prefix:indent+'- ',marker:'-',text:source.trim()}}function addMemo(id){const t=tasks.find(x=>x.id===id);if(!t)return;const value=prompt('メモを追加');if(value===null)return;const text=String(value).trim();if(!text)return;t.childLines.push('\\t- '+text);save();toast('メモを追加しました')}function updateMemo(id,index,value){const t=tasks.find(x=>x.id===id);if(!t||index<0||index>=t.childLines.length)return;const text=String(value||'').trim();if(!text){t.childLines.splice(index,1);save();return}const parts=childMemoParts(t.childLines[index]);t.childLines[index]=parts.prefix+text;save()}function deleteMemo(id,index){const t=tasks.find(x=>x.id===id);if(!t||index<0||index>=t.childLines.length)return;if(!confirm('このメモを削除しますか？'))return;t.childLines.splice(index,1);save()}function createMemoList(t){if(!Array.isArray(t.childLines)||!t.childLines.length)return null;const wrap=document.createElement('div');wrap.className='task-memos';t.childLines.forEach((raw,index)=>{const parts=childMemoParts(raw),row=document.createElement('div');row.className='task-memo';const marker=document.createElement('span');marker.className='task-memo-marker';marker.textContent=parts.marker;const input=document.createElement('input');input.className='task-memo-input';input.type='text';input.value=parts.text;input.setAttribute('aria-label','タスクメモ');input.onchange=()=>updateMemo(t.id,index,input.value);input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();input.blur()}});const remove=btn('×',()=>deleteMemo(t.id,index),false,'task-memo-delete');remove.title='メモを削除';row.append(marker,input,remove);wrap.append(row)});return wrap}function changeEstimate(id){const t=tasks.find(x=>x.id===id);if(!t)return;const raw=prompt('見積もり（分）',String(t.estimate||0));if(raw===null)return;const value=Number(String(raw).trim());if(!Number.isFinite(value)||value<0){toast('見積もりは0以上の数値で入力してください');return}t.estimate=Math.round(value);save()}function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);removeTaskNode(id);save()}"
     );
     html=html.replace(
       "menu.append(btn('終了見込み変更',()=>changeExpectedEnd(t.id)),btn(t.deferred?'保留解除':'保留',()=>deferTask(t.id)),btn('翌日',()=>moveTomorrow(t.id)))",
@@ -58,6 +58,14 @@
       "$('currentEndBtn').hidden=!running;$('currentEndBtn').onclick=running?()=>endTask(running.id):null;",
       "$('currentEndBtn').hidden=!running;$('currentEndBtn').onclick=running?()=>endTask(running.id):null;$('currentInterruptBtn').hidden=!running;$('currentInterruptBtn').onclick=running?()=>interruptTask(running.id):null;$('currentEndTimeBtn').hidden=!running;$('currentEndTimeBtn').onclick=running?()=>endTaskAt(running.id):null;"
     );
+    html=html.replace(
+      "const sameSection=tasks.filter(x=>x.section===t.section),sectionIndex=sameSection.findIndex(x=>x.id===t.id);",
+      "actions.append(btn(t.childLines.length?`メモ ${t.childLines.length} +`:'メモ +',()=>addMemo(t.id),false,'memo-action'));const sameSection=tasks.filter(x=>x.section===t.section),sectionIndex=sameSection.findIndex(x=>x.id===t.id);"
+    );
+    html=html.replace(
+      "main.append(title,meta,actions);row.append(status,main);return row}",
+      "main.append(title,meta);const memoList=createMemoList(t);if(memoList)main.append(memoList);main.append(actions);row.append(status,main);return row}"
+    );
 
     const v2Style=`<style id="taskliner-v2-style">
       :root{color-scheme:light;--bg:#f4f7f8!important;--panel:#fff!important;--text:#1f272b!important;--muted:#748087!important;--line:#d8e0e3!important;--accent:#416873!important;--danger:#92525a!important;--running:#fff!important;--done:#f5f7f7!important;--deferred:#f2f6f7!important;--shadow:0 10px 28px rgba(24,40,46,.045)!important}
@@ -79,6 +87,19 @@
       @media(max-width:720px){.app{padding:9px 10px 72px!important}.topline{gap:10px!important}.clock{font-size:22px!important}.header-row{align-items:flex-start!important}.workspace{grid-template-columns:1fr!important}.current,.add{border-radius:14px!important}.add-form{grid-template-columns:1fr 76px!important}.add .primary{grid-column:1/-1!important}.summary-line{gap:11px!important}.date-btn{min-width:0!important;font-size:15px!important}.task{grid-template-columns:38px 1fr!important}.add input,.task-title,.raw textarea,.taskliner-time-field input[type=time]{font-size:16px!important}}
     </style>`;
     html=html.replace('</head>',v2Style+'</head>');
+
+    const memoStyle=`<style id="taskliner-memo-style">
+      .task-memos{display:flex;flex-direction:column;gap:4px;margin-top:8px;padding:7px 8px;border-left:2px solid color-mix(in srgb,var(--accent) 35%,var(--line));background:color-mix(in srgb,var(--bg) 62%,transparent)}
+      .task-memo{display:grid;grid-template-columns:18px minmax(0,1fr) 24px;gap:5px;align-items:center;min-width:0}
+      .task-memo-marker{color:var(--muted);font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center}
+      .task-memo-input{width:100%;min-width:0;border:0!important;border-bottom:1px solid transparent!important;background:transparent!important;border-radius:0!important;padding:3px 1px!important;color:var(--text)!important;font-size:12px!important;line-height:1.45;outline:0}
+      .task-memo-input:focus{border-bottom-color:var(--line)!important}
+      .task-memo-delete{border:0!important;background:transparent!important;color:var(--muted)!important;padding:2px!important;min-width:24px!important}
+      .task-actions .memo-action{color:var(--accent)!important;font-weight:700!important}
+      .task.done .task-memos{opacity:.9}
+      @media(max-width:720px){.task-memo-input{font-size:16px!important}}
+    </style>`;
+    html=html.replace('</head>',memoStyle+'</head>');
 
     const dialogStyle=`<style id="taskliner-end-dialog-style">
       .taskliner-time-dialog{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--panel);color:var(--text);box-shadow:0 20px 60px rgba(0,0,0,.2);width:min(340px,calc(100vw - 28px))}
