@@ -10,12 +10,26 @@
     const m=String(line||'').match(/^\s*##\s+(.+?)\s*$/);
     return m?m[1].trim():'';
   }
-  function taskLine(line){return /^\s*-\s*\[[ xX]\]\s+/.test(String(line||''))}
-  function existingInstances(markdown){
+  function taskLine(line){return /^\s*-\s*\[[ xX/]\]\s+/.test(String(line||''))}
+  function visibleTaskTitle(line){
+    const m=String(line||'').match(/^\s*-\s*\[[ xX/]\]\s+(.*)$/);if(!m)return'';
+    let body=m[1].trim()
+      .replace(/\s*<!--\s*tl:[^>]*-->\s*$/i,'').trimEnd()
+      .replace(/\s*\[SKIP(?:\s+[^\]]+)?\]\s*$/i,'').trimEnd()
+      .replace(/\s*【[^】]*】\s*$/,'').trimEnd();
+    const estimate=body.match(/\s*(?:⏳\s*)?\((\d+)m\)\s*$/);
+    if(estimate)body=body.slice(0,estimate.index).trimEnd();
+    return body.trim();
+  }
+  function existingInstances(markdown,masters=[]){
     const out=[];
     for(const line of String(markdown||'').replace(/\r\n?/g,'\n').split('\n')){
       if(!taskLine(line))continue;
       const meta=TL.parseHiddenMetadata(line);
+      if(!meta.master_id){
+        const title=visibleTaskTitle(line),master=title?TL.findExactMaster(title,masters):null;
+        if(master)meta.master_id=master.id;
+      }
       if(meta.master_id||meta.repeat_id||meta.planned_at)out.push(meta);
     }
     return out;
