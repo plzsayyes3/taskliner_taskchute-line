@@ -33,3 +33,22 @@ test('missing section is appended without losing existing markdown',()=>{
   assert.match(out,/## 21-24/);
   assert.match(out,/repeat=r/);
 });
+
+
+test('existingInstances infers Master from a legacy Daily line without metadata',()=>{
+  const masters=[{id:'task_brush',title:'🪥歯を磨く',aliases:[],status:'active',estimate:5}];
+  const md='## 21-24\n- [x] 🪥歯を磨く (5m) 【22:01-22:03 / 2m】\n';
+  assert.deepEqual(DI.existingInstances(md,masters),[{master_id:'task_brush'}]);
+});
+
+test('legacy same-Master line prevents one duplicate Repeat while allowing another',()=>{
+  const masters=[{id:'m',title:'みんちゃれ',aliases:[],status:'active',estimate:5}];
+  const repeats=[
+    {id:'r_am',master_id:'m',status:'active',rule:'daily',section:'7-9',planned_at:'08:00'},
+    {id:'r_pm',master_id:'m',status:'active',rule:'daily',section:'21-24',planned_at:'21:00'}
+  ];
+  const existing=DI.existingInstances('- [x] みんちゃれ (5m)',masters);
+  const generated=TL.generateDailyInstances('2026-09-18',masters,repeats,existing);
+  assert.equal(generated.length,1);
+  assert.equal(generated[0].repeat_id,'r_pm');
+});
