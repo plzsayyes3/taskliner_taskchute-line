@@ -34,5 +34,18 @@ function recentIds(){try{return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]
 function markRecent(masterId){if(!masterId)return;const ids=[masterId,...recentIds().filter(x=>x!==masterId)].slice(0,500);localStorage.setItem(RECENT_KEY,JSON.stringify(ids))}
 function sortMastersRecent(masters){const pos=new Map(recentIds().map((id,i)=>[id,i]));return[...masters].sort((a,b)=>(pos.get(a.id)??999999)-(pos.get(b.id)??999999)||String(a.title).localeCompare(String(b.title),'ja'))}
 async function createReviewFor(master,masters){const candidates=TL.findSimilarMasters(master.title,masters.filter(x=>x.id!==master.id)).slice(0,5);if(!candidates.length)return null;const review={id:TL.id('review'),source_master_id:master.id,status:'pending',candidate_master_ids:candidates.map(x=>x.master.id)};await saveReview(review);return review}
-window.TaskLinerTemplateStore={cfg,base,listDir,readFile,putFile,deleteFile,loadMasters,pullMasters,readMasterCache,writeMasterCache,getMasterCacheMeta,loadRepeats,saveMaster,deleteMaster,saveRepeat,loadReviews,saveReview,markRecent,sortMastersRecent,createReviewFor};
+function wikiDisplayText(value){return String(value??'').replace(/\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g,(_,target,label)=>String(label||target).trim())}
+const wikiRoots=new WeakSet();
+function installWikiDisplay(root){
+  if(!root||wikiRoots.has(root))return;wikiRoots.add(root);
+  const doc=root.nodeType===9?root:root.ownerDocument;if(!doc)return;
+  const blocked=el=>el?.closest?.('script,style,textarea,input,select,option,pre,code,[contenteditable="true"]');
+  const cleanText=node=>{if(node?.nodeType!==3||blocked(node.parentElement))return;const before=node.nodeValue||'';if(!before.includes('[['))return;const after=wikiDisplayText(before);if(after!==before)node.nodeValue=after};
+  const attachFrame=frame=>{if(!frame||frame.tagName!=='IFRAME')return;const attach=()=>{try{if(frame.contentDocument)installWikiDisplay(frame.contentDocument)}catch{}};frame.addEventListener('load',attach);attach()};
+  const scan=node=>{if(!node)return;if(node.nodeType===3){cleanText(node);return}if(node.nodeType!==1&&node.nodeType!==9&&node.nodeType!==11)return;if(node.nodeType===1&&blocked(node))return;if(node.nodeType===1&&node.tagName==='IFRAME')attachFrame(node);const walker=doc.createTreeWalker(node,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT);let n;while((n=walker.nextNode())){if(n.nodeType===3)cleanText(n);else if(n.tagName==='IFRAME')attachFrame(n)}};
+  const target=doc.body||doc.documentElement;if(!target)return;scan(target);
+  const observer=new MutationObserver(records=>{for(const rec of records){if(rec.type==='characterData')cleanText(rec.target);for(const node of rec.addedNodes||[])scan(node)}});observer.observe(target,{subtree:true,childList:true,characterData:true});
+}
+if(typeof document!=='undefined'){const boot=()=>installWikiDisplay(document);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0)}
+window.TaskLinerTemplateStore={cfg,base,listDir,readFile,putFile,deleteFile,loadMasters,pullMasters,readMasterCache,writeMasterCache,getMasterCacheMeta,loadRepeats,saveMaster,deleteMaster,saveRepeat,loadReviews,saveReview,markRecent,sortMastersRecent,createReviewFor,wikiDisplayText,installWikiDisplay};
 })();
