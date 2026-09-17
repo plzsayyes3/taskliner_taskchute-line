@@ -71,10 +71,17 @@
   function generateDailyInstances(dateStr,masters=[],repeats=[],existingInstances=[]){
     const byId=new Map(masters.map(x=>[x.id,x]));
     const existingRepeatIds=new Set(existingInstances.map(x=>x?.repeat_id).filter(Boolean));
+    const legacyByMaster=new Map();
+    for(const instance of existingInstances){
+      if(instance?.master_id&&!instance?.repeat_id)legacyByMaster.set(instance.master_id,(legacyByMaster.get(instance.master_id)||0)+1);
+    }
     const result=[];
-    for(const repeat of repeats){
-      if(existingRepeatIds.has(repeat.id)||!isRepeatDue(repeat,dateStr))continue;
+    const due=[...repeats].filter(repeat=>!existingRepeatIds.has(repeat.id)&&isRepeatDue(repeat,dateStr))
+      .sort((a,b)=>String(a.planned_at||'99:99').localeCompare(String(b.planned_at||'99:99'))||String(a.id).localeCompare(String(b.id)));
+    for(const repeat of due){
       const master=byId.get(repeat.master_id);if(!master||master.status==='archived')continue;
+      const legacy=legacyByMaster.get(master.id)||0;
+      if(legacy>0){legacyByMaster.set(master.id,legacy-1);continue}
       const override=cleanEstimate(repeat.estimate),base=cleanEstimate(master.estimate);
       result.push({
         id:'',date:dateStr,title:String(master.title||''),estimate:override===null?(base??0):override,
