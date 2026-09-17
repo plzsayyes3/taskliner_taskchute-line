@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TaskLiner Templates β</title>
+<style>
+:root{color-scheme:light;--bg:#f5f5f2;--panel:#fff;--text:#20211f;--muted:#777a73;--line:#dedfd9;--accent:#2f5d50;--soft:#eef4f1;--warn:#9a682f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;line-height:1.5}.app{max-width:920px;margin:0 auto;padding:16px 14px 80px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}h1{font-size:19px;margin:0}.beta{font-size:11px;color:var(--muted);font-weight:600}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}.card.full{grid-column:1/-1}h2{font-size:13px;margin:0 0 10px}.muted{font-size:11px;color:var(--muted)}button,input,select{font:inherit}.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}.field label{font-size:10px;color:var(--muted)}input,select{width:100%;border:1px solid var(--line);background:#fafbf9;border-radius:9px;padding:8px 9px}.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer}.btn.primary{background:var(--accent);color:white;border-color:var(--accent);font-weight:700}.suggest{position:relative}.suggest-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:10;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.12);overflow:hidden}.suggest-list:empty{display:none}.suggest-item{display:block;width:100%;border:0;border-bottom:1px solid #eceeea;background:#fff;text-align:left;padding:9px 10px;cursor:pointer}.suggest-item:last-child{border-bottom:0}.suggest-item small{display:block;color:var(--muted);margin-top:2px}.list{display:flex;flex-direction:column;gap:7px;margin-top:10px}.item{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff}.item-head{display:flex;gap:8px;align-items:center;justify-content:space-between}.item-title{font-weight:700;font-size:13px}.pill{display:inline-block;border-radius:999px;background:var(--soft);padding:2px 7px;font-size:10px;color:var(--accent)}.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;white-space:pre-wrap;word-break:break-word;background:#f6f7f5;border-radius:8px;padding:8px;margin-top:6px}.status{font-size:11px;color:var(--muted);min-height:18px}.status.warn{color:var(--warn)}.review{border-left:3px solid #d9b77b;padding-left:9px}.hidden{display:none!important}@media(max-width:720px){.grid{grid-template-columns:1fr}.card.full{grid-column:auto}.row.mobile-stack{align-items:stretch;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div><h1>TaskLiner Templates <span class="beta">β prototype</span></h1><div class="muted">Master / Repeat / Daily Instance を本番Dailyから分離して検証</div></div><button id="reload" class="btn">再読込</button></header>
+<div id="status" class="status">起動中…</div>
+<div class="grid">
+  <section class="card full">
+    <h2>Quick Add + Master Suggest</h2>
+    <div class="row mobile-stack">
+      <div class="field suggest"><label>タスク名</label><input id="taskTitle" autocomplete="off" placeholder="1文字目から候補表示"><div id="suggestions" class="suggest-list"></div></div>
+      <div class="field" style="max-width:120px"><label>見積（分）</label><input id="taskEstimate" type="number" min="0" step="5" value="5"></div>
+      <button id="addTask" class="btn primary" style="align-self:end">追加</button>
+    </div>
+    <div class="muted" style="margin-top:7px">完全一致（title / alias）は既存Masterを再利用。類似だけなら新Masterを作り、review候補として保存します。</div>
+  </section>
+
+  <section class="card">
+    <h2>Repeat追加</h2>
+    <div class="field"><label>Master</label><select id="repeatMaster"></select></div>
+    <div class="row" style="margin-top:7px"><div class="field"><label>ルール</label><select id="repeatRule"><option value="daily">毎日</option><option value="weekdays">曜日指定</option><option value="weekly">毎週</option><option value="biweekly">隔週</option><option value="nth_weekday">第●曜日</option><option value="month_end">月末日</option></select></div><div class="field"><label>Section</label><input id="repeatSection" placeholder="7-9"></div></div>
+    <div class="row" style="margin-top:7px"><div class="field"><label>planned_at</label><input id="repeatTime" type="time" value="07:00"></div><div class="field"><label>見積上書き</label><input id="repeatEstimate" type="number" min="0" step="5" placeholder="空欄=Master"></div></div>
+    <div id="weekdayWrap" class="field hidden" style="margin-top:7px"><label>曜日（複数はカンマ。日=0 … 土=6）</label><input id="weekdays" placeholder="1,2,3,4,5"></div>
+    <div id="singleWeekdayWrap" class="field hidden" style="margin-top:7px"><label>曜日（日=0 … 土=6）</label><input id="weekday" type="number" min="0" max="6" value="1"></div>
+    <div id="nthWrap" class="field hidden" style="margin-top:7px"><label>第何週</label><input id="nth" type="number" min="1" max="5" value="1"></div>
+    <div id="anchorWrap" class="field hidden" style="margin-top:7px"><label>隔週の基準日</label><input id="anchorDate" type="date"></div>
+    <button id="addRepeat" class="btn primary" style="margin-top:9px">Repeatを保存</button>
+  </section>
+
+  <section class="card">
+    <h2>RepeatからDaily生成</h2>
+    <div class="row"><div class="field"><label>対象日</label><input id="targetDate" type="date"></div><button id="generate" class="btn primary" style="align-self:end">生成</button></div>
+    <div class="muted" style="margin-top:7px">同じrepeat_idは重複生成しません。削除後に再度押すと復活します。</div>
+    <div id="instances" class="list"></div>
+  </section>
+
+  <section class="card">
+    <h2>Masters</h2><div id="masters" class="list"></div>
+  </section>
+  <section class="card">
+    <h2>Repeats</h2><div id="repeats" class="list"></div>
+  </section>
+  <section class="card full">
+    <h2>Review候補</h2><div id="reviews" class="list"></div><div class="muted" style="margin-top:8px">このβでは候補を記録するところまで。統合は確認後に行う前提です。</div>
+  </section>
+</div>
+</div>
+<script src="./template-core.js"></script>
+<script>
+(()=>{'use strict';
+const TL=window.TaskLinerTemplates,$=id=>document.getElementById(id);
+const CONFIG_KEY='taskliner_github_sync_config_v1',TOKEN_KEY='taskliner_github_sync_token_v1';
+let masters=[],repeats=[],instances=[],reviews=[];
+function today(){const d=new Date(),p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}
+$('targetDate').value=today();$('anchorDate').value=today();
+function cfg(){let saved={};try{saved=JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}')}catch{};return{repo:String(saved.repo||'plzsayyes3/mynotebook'),branch:String(saved.branch||'main'),folder:String(saved.folder||'09_taskchute').replace(/^\/+|\/+$/g,''),token:String(localStorage.getItem(TOKEN_KEY)||'')}}
+function status(text,warn=false){$('status').textContent=text;$('status').className=`status${warn?' warn':''}`}
+function splitRepo(repo){const p=repo.split('/').filter(Boolean);if(p.length!==2)throw new Error('Repository設定は owner/repo 形式が必要です');return p}
+function headers(){const c=cfg();const h={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};if(c.token)h.Authorization=`Bearer ${c.token}`;return h}
+function endpoint(path){const c=cfg(),[o,r]=splitRepo(c.repo);return`https://api.github.com/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}${path}`}
+function b64decode(text){const bin=atob(String(text||'').replace(/\s/g,'')),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
+function b64encode(text){const bytes=new TextEncoder().encode(text);let bin='';for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin)}
+async function gh(path,options={}){const r=await fetch(endpoint(path),{...options,headers:{...headers(),...(options.headers||{})}});if(r.status===404)return null;if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||`GitHub API ${r.status}`)}return r.json()}
+async function listDir(path){const c=cfg();return await gh(`/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(c.branch)}`)||[]}
+async function readFile(path){const c=cfg(),d=await gh(`/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(c.branch)}`);return d?.content?b64decode(d.content):''}
+async function createFile(path,content,message){const c=cfg();if(!c.token)throw new Error('TaskLiner設定のGitHub Tokenが必要です');return gh(`/contents/${path.split('/').map(encodeURIComponent).join('/')}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,content:b64encode(content),branch:c.branch})})}
+function base(){return`${cfg().folder}/templates`}
+async function loadCollection(sub,parser){let list=[];try{list=await listDir(`${base()}/${sub}`)}catch(e){if(!/404/.test(e.message))throw e}if(!Array.isArray(list))return[];const out=[];for(const item of list.filter(x=>x.type==='file'&&/\.md$/i.test(x.name||''))){try{const text=await readFile(item.path),obj=parser(text);if(obj.id)out.push(obj)}catch(e){console.warn(item.path,e)}}return out}
+async function reload(){status('Templatesを読み込み中…');try{masters=await loadCollection('masters',TL.parseMasterMarkdown);repeats=await loadCollection('repeats',TL.parseRepeatMarkdown);reviews=await loadReviews();renderAll();status(`Master ${masters.length}件 / Repeat ${repeats.length}件`)}catch(e){renderAll();status(`読込失敗: ${e.message}`,true)}}
+async function loadReviews(){let list=[];try{list=await listDir(`${base()}/review`)}catch{return[]};if(!Array.isArray(list))return[];const out=[];for(const item of list.filter(x=>x.type==='file'&&/\.md$/i.test(x.name||''))){const text=await readFile(item.path);const source=(text.match(/source_master_id:\s*"?([^"\n]+)"?/i)||[])[1]||'';const candidates=[...text.matchAll(/^\s*-\s*"?([^"\n]+)"?\s*$/gm)].map(m=>m[1]);out.push({id:item.name.replace(/\.md$/i,''),source_master_id:source.trim(),candidate_master_ids:candidates})}return out}
+function masterName(id){return masters.find(x=>x.id===id)?.title||id}
+function renderMasters(){const root=$('masters');root.innerHTML='';for(const m of masters){const el=document.createElement('div');el.className='item';el.innerHTML=`<div class="item-head"><div class="item-title"></div><span class="pill"></span></div><div class="muted alias"></div>`;el.querySelector('.item-title').textContent=m.title;el.querySelector('.pill').textContent=`${m.estimate||0}m`;el.querySelector('.alias').textContent=m.aliases?.length?`aliases: ${m.aliases.join(' / ')}`:'aliasなし';root.append(el)}if(!masters.length)root.innerHTML='<div class="muted">まだMasterはありません。Quick Addから作成できます。</div>';const sel=$('repeatMaster'),current=sel.value;sel.innerHTML=masters.map(m=>`<option value="${m.id}">${escapeHtml(m.title)}</option>`).join('');if(masters.some(m=>m.id===current))sel.value=current}
+function renderRepeats(){const root=$('repeats');root.innerHTML='';for(const r of repeats){const el=document.createElement('div');el.className='item';const rule=repeatLabel(r);el.innerHTML=`<div class="item-head"><div class="item-title"></div><span class="pill"></span></div><div class="muted"></div>`;el.querySelector('.item-title').textContent=masterName(r.master_id);el.querySelector('.pill').textContent=r.planned_at||'--:--';el.querySelector('.muted').textContent=`${rule} / ${r.section||'sectionなし'}${r.estimate!==''?` / ${r.estimate}m`:''}`;root.append(el)}if(!repeats.length)root.innerHTML='<div class="muted">Repeatはまだありません。</div>'}
+function repeatLabel(r){if(r.rule==='daily')return'毎日';if(r.rule==='weekdays')return`曜日 ${r.weekdays.join(',')}`;if(r.rule==='weekly')return`毎週 ${r.weekday}`;if(r.rule==='biweekly')return`隔週 ${r.weekday}`;if(r.rule==='nth_weekday')return`第${r.nth}・曜日${r.weekday}`;if(r.rule==='month_end')return'月末日';return r.rule}
+function renderInstances(){const root=$('instances');root.innerHTML='';for(const x of instances){const el=document.createElement('div');el.className='item';el.innerHTML='<div class="item-head"><div><div class="item-title"></div><div class="muted meta"></div></div><button class="btn">削除</button></div><div class="code"></div>';el.querySelector('.item-title').textContent=x.title;el.querySelector('.meta').textContent=`${x.section||'sectionなし'} / ${x.planned_at||'--:--'} / ${x.estimate}m`;el.querySelector('.code').textContent=TL.renderInstanceMarkdown(x);el.querySelector('button').onclick=()=>{instances=instances.filter(i=>i!==x);renderInstances()};root.append(el)}if(!instances.length)root.innerHTML='<div class="muted">生成されたDaily Instanceはありません。</div>'}
+function renderReviews(){const root=$('reviews');root.innerHTML='';for(const r of reviews){const el=document.createElement('div');el.className='item review';const names=(r.candidate_master_ids||[]).map(masterName).join(' / ');el.innerHTML='<div class="item-title"></div><div class="muted"></div>';el.querySelector('.item-title').textContent=masterName(r.source_master_id);el.querySelector('.muted').textContent=`類似候補: ${names||'なし'}`;root.append(el)}if(!reviews.length)root.innerHTML='<div class="muted">レビュー候補はありません。</div>'}
+function renderAll(){renderMasters();renderRepeats();renderInstances();renderReviews();renderSuggestions()}
+function renderSuggestions(){const root=$('suggestions'),query=$('taskTitle').value;root.innerHTML='';if(!query.trim())return;for(const m of TL.suggestMasters(query,masters,8)){const b=document.createElement('button');b.type='button';b.className='suggest-item';b.innerHTML='<span></span><small></small>';b.querySelector('span').textContent=m.title;b.querySelector('small').textContent=m.aliases?.length?m.aliases.join(' / '):`${m.estimate||0}m`;b.onclick=()=>{$('taskTitle').value=m.title;$('taskEstimate').value=m.estimate||0;root.innerHTML='';$('taskTitle').focus()};root.append(b)}}
+function reviewMarkdown(review){return`---\ntype: task-master-review\nid: ${JSON.stringify(review.id)}\nstatus: "pending"\nsource_master_id: ${JSON.stringify(review.source_master_id)}\ncandidate_master_ids:\n${review.candidate_master_ids.map(id=>`  - ${JSON.stringify(id)}`).join('\n')}\ncreated: ${JSON.stringify(today())}\n---\n`}
+async function addTask(){const title=$('taskTitle').value.trim();if(!title)return;const estimate=Number($('taskEstimate').value)||0;let master=TL.findExactMaster(title,masters);if(!master){const similar=TL.findSimilarMasters(title,masters);const ensured=TL.ensureMaster(title,estimate,masters);master=ensured.master;renderMasters();try{await createFile(`${base()}/masters/${master.id}.md`,TL.serializeMaster(master),`Add TaskLiner master: ${title}`);if(similar.length){const review={id:TL.id('review'),source_master_id:master.id,candidate_master_ids:similar.slice(0,5).map(x=>x.master.id)};reviews.unshift(review);await createFile(`${base()}/review/${review.id}.md`,reviewMarkdown(review),`Add TaskLiner master review: ${title}`)}}catch(e){status(`Masterは画面に追加しましたがGitHub保存失敗: ${e.message}`,true)}}instances.push({date:$('targetDate').value||today(),title,estimate,completed:false,master_id:master.id,repeat_id:'',section:'',planned_at:''});$('taskTitle').value='';renderAll();status(`「${title}」を追加しました`)}
+function toggleRuleFields(){const rule=$('repeatRule').value;$('weekdayWrap').classList.toggle('hidden',rule!=='weekdays');$('singleWeekdayWrap').classList.toggle('hidden',!['weekly','biweekly','nth_weekday'].includes(rule));$('nthWrap').classList.toggle('hidden',rule!=='nth_weekday');$('anchorWrap').classList.toggle('hidden',rule!=='biweekly')}
+async function addRepeat(){const master_id=$('repeatMaster').value;if(!master_id){status('先にMasterを作成してください',true);return}const rule=$('repeatRule').value;const r={id:TL.id('repeat'),master_id,status:'active',rule,weekdays:[],weekday:'',nth:'',anchor_date:'',section:$('repeatSection').value.trim(),planned_at:$('repeatTime').value,estimate:$('repeatEstimate').value===''?'':Number($('repeatEstimate').value)};if(rule==='weekdays')r.weekdays=$('weekdays').value.split(',').map(x=>Number(x.trim())).filter(x=>Number.isInteger(x)&&x>=0&&x<=6);if(['weekly','biweekly','nth_weekday'].includes(rule))r.weekday=Number($('weekday').value);if(rule==='nth_weekday')r.nth=Number($('nth').value);if(rule==='biweekly')r.anchor_date=$('anchorDate').value||today();try{await createFile(`${base()}/repeats/${r.id}.md`,TL.serializeRepeat(r),`Add TaskLiner repeat: ${masterName(master_id)}`);repeats.push(r);renderRepeats();status(`Repeatを保存しました: ${masterName(master_id)}`)}catch(e){status(`Repeat保存失敗: ${e.message}`,true)}}
+function generate(){const date=$('targetDate').value||today();const fresh=TL.generateDailyInstances(date,masters,repeats,instances);instances.push(...fresh);instances.sort((a,b)=>String(a.planned_at||'99:99').localeCompare(String(b.planned_at||'99:99')));renderInstances();status(fresh.length?`${fresh.length}件生成しました`:'未生成のRepeatはありません')}
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+$('taskTitle').addEventListener('input',renderSuggestions);$('taskTitle').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addTask()}});$('addTask').onclick=addTask;$('repeatRule').onchange=toggleRuleFields;$('addRepeat').onclick=addRepeat;$('generate').onclick=generate;$('reload').onclick=reload;toggleRuleFields();reload();
+})();
+</script>
+</body>
+</html>
