@@ -3,7 +3,7 @@ const TL=window.TaskLinerTemplates;
 const CONFIG_KEY='taskliner_github_sync_config_v1',TOKEN_KEY='taskliner_github_sync_token_v1';
 const RECENT_KEY='taskliner_master_recent_v1';
 const MASTER_CACHE_KEY='taskliner_master_cache_v1',MASTER_CACHE_META_KEY='taskliner_master_cache_meta_v1';
-function cfg(){let saved={};try{saved=JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}')}catch{};return{repo:String(saved.repo||'plzsayyes3/mynotebook'),branch:String(saved.branch||'main'),folder:String(saved.folder||'09_taskchute').replace(/^\/+|\/+$/g,''),token:String(localStorage.getItem(TOKEN_KEY)||'')}}
+function cfg(){let saved={};try{saved=JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}')}catch{};return{repo:String(saved.templateRepo||'plzsayyes3/mynotebook'),branch:String(saved.templateBranch||'main'),folder:String(saved.templateFolder||'09_taskchute').replace(/^\/+|\/+$/g,''),token:String(localStorage.getItem(TOKEN_KEY)||'')}}
 function splitRepo(repo){const p=repo.split('/').filter(Boolean);if(p.length!==2)throw new Error('Repository設定は owner/repo 形式が必要です');return p}
 function headers(){const c=cfg(),h={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};if(c.token)h.Authorization=`Bearer ${c.token}`;return h}
 function endpoint(path){const c=cfg(),[o,r]=splitRepo(c.repo);return`https://api.github.com/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}${path}`}
