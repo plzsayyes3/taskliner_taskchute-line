@@ -85,3 +85,17 @@ test('master and repeat markdown serialize and parse', () => {
   assert.equal(parsedRepeat.section, '7-9');
   assert.equal(parsedRepeat.planned_at, '07:15');
 });
+
+
+test('displayTitle hides Markdown-link destinations and WikiLink markup',()=>{
+  assert.equal(TL.displayTitle('[昨日をAIに振り返ってもらう](shortcuts://run-shortcut?name=test)'),'昨日をAIに振り返ってもらう');
+  assert.equal(TL.displayTitle('🐤[英語](shortcuts://run-shortcut?name=English)'),'🐤英語');
+  assert.equal(TL.displayTitle('🧭[[2026-01-10 ミッションステートメント|ミッション]]をみる'),'🧭ミッションをみる');
+  assert.equal(TL.displayTitle('[[folder/note#見出し]]'),'note');
+});
+
+test('displayTitle keeps canonical title data untouched',()=>{
+  const raw='✏️[今日のメモを開く](shortcuts://run-shortcut?name=obsidian)';
+  TL.displayTitle(raw);
+  assert.equal(raw,'✏️[今日のメモを開く](shortcuts://run-shortcut?name=obsidian)');
+});
