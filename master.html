@@ -8,6 +8,7 @@ button,input,select{font:inherit}.app{max-width:1080px;margin:auto;padding:12px 
 .modes{display:inline-flex;gap:4px;padding:3px;border:1px solid var(--line);border-radius:11px;background:#fff;margin-bottom:10px}.mode{border:0;background:transparent;color:var(--muted);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:750;cursor:pointer}.mode.active{background:var(--accent);color:#fff}.mode .count{opacity:.7;margin-left:4px}
 .toolbar{display:flex;gap:7px;margin-bottom:10px}.toolbar input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff}.card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px}.list{display:flex;flex-direction:column;gap:6px}.item{border:1px solid var(--line);border-radius:10px;padding:10px 11px;cursor:pointer;background:#fff}.item:hover{border-color:#b8c8c1}.item.active{outline:2px solid color-mix(in srgb,var(--accent) 25%,transparent)}.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.title{font-size:13px;font-weight:750;min-width:0;overflow-wrap:anywhere;word-break:break-word}.meta{font-size:10px;color:var(--muted);margin-top:3px}.pill{flex:none;font-size:9px;padding:2px 6px;border-radius:999px;background:var(--soft);color:var(--accent)}
 .view[hidden]{display:none!important}.review{border-left:3px solid #d9b77b}.review-candidates{margin-top:5px}.review-merge{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:7px;align-items:end;margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}.review-merge label{display:block;font-size:9px;color:var(--muted);margin-bottom:3px}.review-merge select{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;background:#fafbf9;padding:7px}.review-master-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}.actions{display:flex;gap:7px;flex-wrap:wrap}
+.toast{position:fixed;z-index:120;left:50%;top:18px;transform:translate(-50%,-12px);background:#20211f;color:#fff;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:750;box-shadow:0 10px 28px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}.toast.show{opacity:1;transform:translate(-50%,0)}.toast.success{background:var(--accent)}.toast.error{background:var(--danger)}
 .drawer-backdrop{position:fixed;inset:0;z-index:70;background:rgba(20,25,23,.2);opacity:0;pointer-events:none;transition:opacity .18s ease}.drawer-backdrop.open{opacity:1;pointer-events:auto}.drawer{position:fixed;z-index:71;top:0;right:0;width:min(460px,92vw);height:100dvh;background:var(--panel);border-left:1px solid var(--line);box-shadow:-18px 0 50px rgba(0,0,0,.14);transform:translateX(102%);transition:transform .2s ease;display:flex;flex-direction:column}.drawer.open{transform:translateX(0)}.drawer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid var(--line)}.drawer-title{font-size:14px;font-weight:800}.drawer-close{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:20px;line-height:1;cursor:pointer}.drawer-body{flex:1;overflow:auto;padding:14px 14px 40px}.field{margin-bottom:9px}.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}.field input,.field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fafbf9}.repeat-list{display:flex;flex-direction:column;gap:6px}.repeat-link{text-decoration:none;color:inherit}.empty-drawer{padding:4px 0 12px;color:var(--muted);font-size:11px}
 @media(max-width:700px){.app{padding:8px 10px 60px}.head{align-items:flex-start}.toolbar{flex-wrap:wrap}.toolbar input{flex-basis:100%}.review-merge{grid-template-columns:1fr}.drawer{width:calc(100vw - 12px);max-width:none}.drawer-head{padding-top:max(13px,env(safe-area-inset-top))}}
 </style></head>
@@ -27,6 +28,7 @@ button,input,select{font:inherit}.app{max-width:1080px;margin:auto;padding:12px 
 </section>
 </div>
 
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 <div id="drawerBackdrop" class="drawer-backdrop"></div>
 <aside id="drawer" class="drawer" aria-label="Master詳細" aria-hidden="true">
   <header class="drawer-head"><div><div id="drawerTitle" class="drawer-title">Master詳細</div><div id="drawerSub" class="muted"></div></div><button id="drawerClose" class="drawer-close" type="button" aria-label="閉じる">×</button></header>
@@ -44,13 +46,19 @@ button,input,select{font:inherit}.app{max-width:1080px;margin:auto;padding:12px 
   </div>
 </aside>
 
-<script src="./template-core.js?v=20260918-review-merge"></script><script src="./template-store.js?v=20260918-review-merge"></script>
+<script src="./template-core.js?v=20260918-review-merge-feedback"></script><script src="./template-store.js?v=20260918-review-merge-feedback"></script>
 <script>
 (()=>{'use strict';
 const TL=TaskLinerTemplates,S=TaskLinerTemplateStore,$=id=>document.getElementById(id);
 let masters=[],repeats=[],reviews=[],selected='',mode='list';
 
 function status(t){$('status').textContent=t}
+let toastTimer=0;
+function toast(message,type='success'){
+  const el=$('toast');if(!el)return;
+  clearTimeout(toastTimer);el.textContent=message;el.className=`toast ${type} show`;
+  toastTimer=setTimeout(()=>{el.className='toast'},2600);
+}
 function esc(t){return String(t||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function repeatCount(id){return repeats.filter(r=>r.master_id===id&&r.status!=='inactive').length}
 function pendingReviews(){return reviews.filter(r=>r.status==='pending')}
@@ -120,7 +128,7 @@ function renderReviews(){
       ${cands.length?`<div class="review-merge">
         <div><label>統合する相手</label><select class="merge-candidate">${options}</select></div>
         <div><label>正本として残すMaster</label><select class="merge-survivor"></select></div>
-        <button class="btn primary review-merge-btn" type="button">Merge</button>
+        <button class="btn primary review-merge-btn" type="button">統合します</button>
       </div>`:''}
       <div class="actions" style="margin-top:8px"><button class="btn review-separate" type="button">選択した候補とは別物</button><button class="btn review-later" type="button">後で見る</button></div>
     </div>`
@@ -144,14 +152,18 @@ function renderReviews(){
       if(!r||!source||!candidate||!survivorId)return;
       const target=survivorId===source.id?source:candidate,absorbed=target.id===source.id?candidate:source;
       const moved=repeats.filter(x=>x.master_id===absorbed.id).length;
-      const ok=confirm(`「${TL.displayTitle(absorbed.title)}」を「${TL.displayTitle(target.title)}」へ統合します。\n\n・正本: ${TL.displayTitle(target.title)}\n・吸収側タイトル/aliasは正本のaliasへ追加\n・Repeat ${moved}件は正本へ付け替え\n・吸収側Masterはarchive\n・過去Dailyは変更しません\n\n実行しますか？`);
+      const ok=confirm(`統合しますか？\n\n「${TL.displayTitle(absorbed.title)}」→「${TL.displayTitle(target.title)}」\n\n・正本: ${TL.displayTitle(target.title)}\n・吸収側タイトル/aliasは正本のaliasへ追加\n・Repeat ${moved}件は正本へ付け替え\n・吸収側Masterはarchive\n・過去Dailyは変更しません`);
       if(!ok)return;
-      status('MasterをMerge中…');
+      mergeBtn.disabled=true;mergeBtn.textContent='統合中…';status('統合中…');
       try{
         const result=await S.mergeMasters(target,absorbed,repeats,r);
         await reload(false);setMode('review',{replaceUrl:false});
-        status(`Mergeしました: ${TL.displayTitle(result.target.title)} / Repeat ${result.repeats.length}件を付け替え`);
-      }catch(err){status(`Merge失敗: ${err.message}`)}
+        status(`統合しました: ${TL.displayTitle(result.target.title)} / Repeat ${result.repeats.length}件を付け替え`);
+        toast('統合しました');
+      }catch(err){
+        mergeBtn.disabled=false;mergeBtn.textContent='統合します';
+        status(`統合失敗: ${err.message}`);toast('統合に失敗しました','error');
+      }
     };
 
     const separateBtn=card.querySelector('.review-separate');
