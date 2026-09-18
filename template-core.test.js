@@ -99,3 +99,15 @@ test('displayTitle keeps canonical title data untouched',()=>{
   TL.displayTitle(raw);
   assert.equal(raw,'✏️[今日のメモを開く](shortcuts://run-shortcut?name=obsidian)');
 });
+
+
+test('mergeMasterRecords keeps selected target and absorbs title and aliases',()=>{
+  const target={id:'task_a',title:'仕事時間',aliases:['勤務'],status:'active',estimate:250};
+  const absorbed={id:'task_b',title:'💻仕事時間',aliases:['勤務','Work time'],status:'active',estimate:0};
+  const merged=TL.mergeMasterRecords(target,absorbed);
+  assert.equal(merged.id,'task_a');
+  assert.equal(merged.title,'仕事時間');
+  assert.equal(merged.estimate,250);
+  assert.deepEqual(merged.aliases,['勤務','💻仕事時間','Work time']);
+  assert.equal(merged.status,'active');
+});
