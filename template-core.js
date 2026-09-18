@@ -8,6 +8,20 @@
   function norm(value){
     return String(value||'').normalize('NFKC').trim().replace(/[\s　]+/g,' ').toLocaleLowerCase('ja');
   }
+  function displayTitle(value){
+    let text=String(value||'');
+    text=text.replace(/\[\[([^\]]+)\]\]/g,(_,raw)=>{
+      const source=String(raw||'').trim();
+      const pipe=source.indexOf('|');
+      const targetWithHeading=(pipe>=0?source.slice(0,pipe):source).trim();
+      const alias=(pipe>=0?source.slice(pipe+1):'').trim();
+      const hash=targetWithHeading.indexOf('#');
+      const target=(hash>=0?targetWithHeading.slice(0,hash):targetWithHeading).trim();
+      return alias||target.split('/').pop()||targetWithHeading||source;
+    });
+    text=text.replace(/\[([^\]]+)\]\((?:\\.|[^()\\]|\([^()]*\))*\)/g,'$1');
+    return text;
+  }
   function activeMaster(master){return !master||master.status!=='archived'}
   function aliasesOf(master){return Array.isArray(master?.aliases)?master.aliases:[]}
   function findExactMaster(title,masters=[]){
@@ -176,5 +190,5 @@
     const x=frontmatterObject(markdown);
     return{id:String(x.id||''),master_id:String(x.master_id||''),status:String(x.status||'active'),rule:String(x.rule||'daily'),weekdays:Array.isArray(x.weekdays)?x.weekdays.map(Number).filter(Number.isInteger):[],weekday:x.weekday??'',nth:x.nth??'',anchor_date:String(x.anchor_date||''),section:String(x.section||''),planned_at:String(x.planned_at||''),estimate:x.estimate??''};
   }
-  return{norm,findExactMaster,suggestMasters,isRepeatDue,generateDailyInstances,renderInstanceMarkdown,parseHiddenMetadata,ensureMaster,findSimilarMasters,serializeMaster,serializeRepeat,parseMasterMarkdown,parseRepeatMarkdown,id};
+  return{norm,displayTitle,findExactMaster,suggestMasters,isRepeatDue,generateDailyInstances,renderInstanceMarkdown,parseHiddenMetadata,ensureMaster,findSimilarMasters,serializeMaster,serializeRepeat,parseMasterMarkdown,parseRepeatMarkdown,id};
 });
