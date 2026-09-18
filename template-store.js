@@ -26,10 +26,40 @@ async function loadRepeats(){return loadCollection('repeats',TL.parseRepeatMarkd
 async function saveMaster(master){const result=await putFile(`${base()}/masters/${master.id}.md`,TL.serializeMaster(master),`TaskLiner master: ${master.title}`);const cached=readMasterCache(),i=cached.findIndex(x=>x.id===master.id),next={id:master.id,title:master.title,aliases:master.aliases||[],status:master.status||'active',estimate:Math.max(0,Math.round(Number(master.estimate)||0))};if(i>=0)cached[i]=next;else cached.push(next);writeMasterCache(cached,{...getMasterCacheMeta(),source:'local-after-save'});return result}
 async function deleteMaster(masterId){if(!masterId)throw new Error('Master IDがありません');const deleted=await deleteFile(`${base()}/masters/${masterId}.md`,`Delete TaskLiner master: ${masterId}`);const cached=readMasterCache().filter(x=>x.id!==masterId);writeMasterCache(cached,{...getMasterCacheMeta(),source:'local-after-delete'});const recent=recentIds().filter(x=>x!==masterId);localStorage.setItem(RECENT_KEY,JSON.stringify(recent));return deleted}
 async function saveRepeat(repeat){return putFile(`${base()}/repeats/${repeat.id}.md`,TL.serializeRepeat(repeat),`TaskLiner repeat: ${repeat.id}`)}
-function reviewMarkdown(review){return`---\ntype: task-master-review\nid: ${JSON.stringify(review.id)}\nsource_master_id: ${JSON.stringify(review.source_master_id)}\nstatus: ${JSON.stringify(review.status||'pending')}\ncandidate_master_ids:\n${(review.candidate_master_ids||[]).map(x=>`  - ${JSON.stringify(x)}`).join('\n')}\n---\n`}
-function parseReview(text,path=''){const id=(text.match(/^id:\s*"?([^"\n]+)"?/m)||[])[1]||path.split('/').pop()?.replace(/\.md$/,'')||'';const source=(text.match(/^source_master_id:\s*"?([^"\n]+)"?/m)||[])[1]||'';const status=(text.match(/^status:\s*"?([^"\n]+)"?/m)||[])[1]||'pending';const block=(text.match(/^candidate_master_ids:\s*\n((?:\s+-.*\n?)*)/m)||[])[1]||'';const ids=[...block.matchAll(/^\s*-\s*"?([^"\n]+)"?/gm)].map(m=>m[1].trim());return{id:id.trim(),source_master_id:source.trim(),status:status.trim(),candidate_master_ids:ids,_path:path}}
+function reviewMarkdown(review){return`---\ntype: task-master-review\nid: ${JSON.stringify(review.id)}\nsource_master_id: ${JSON.stringify(review.source_master_id)}\nstatus: ${JSON.stringify(review.status||'pending')}\ntarget_master_id: ${JSON.stringify(review.target_master_id||'')}\nlast_merged_master_id: ${JSON.stringify(review.last_merged_master_id||'')}\ncandidate_master_ids:\n${(review.candidate_master_ids||[]).map(x=>`  - ${JSON.stringify(x)}`).join('\n')}\n---\n`}
+function parseReview(text,path=''){
+  const id=(text.match(/^id:\s*"?([^"\n]+)"?/m)||[])[1]||path.split('/').pop()?.replace(/\.md$/,'')||'';
+  const source=(text.match(/^source_master_id:\s*"?([^"\n]+)"?/m)||[])[1]||'';
+  const status=(text.match(/^status:\s*"?([^"\n]+)"?/m)||[])[1]||'pending';
+  const target=(text.match(/^target_master_id:\s*"?([^"\n]*)"?/m)||[])[1]||'';
+  const lastMerged=(text.match(/^last_merged_master_id:\s*"?([^"\n]*)"?/m)||[])[1]||'';
+  const block=(text.match(/^candidate_master_ids:\s*\n((?:\s+-.*\n?)*)/m)||[])[1]||'';
+  let ids=[...block.matchAll(/^\s*-\s*"?([^"\n]+)"?/gm)].map(m=>m[1].trim()).filter(Boolean);
+  if(!ids.length){
+    const fmEnd=String(text||'').indexOf('\n---',4),body=fmEnd>=0?String(text||'').slice(fmEnd+4):'';
+    ids=[...body.matchAll(/^\s*-\s*"?([^"\n]+)"?/gm)].map(m=>m[1].trim()).filter(Boolean);
+  }
+  return{id:id.trim(),source_master_id:source.trim(),status:status.trim(),target_master_id:target.trim(),last_merged_master_id:lastMerged.trim(),candidate_master_ids:[...new Set(ids)],_path:path}
+}
 async function loadReviews(){let list=[];try{list=await listDir(`${base()}/review`)}catch{return[]};if(!Array.isArray(list))return[];const out=[];for(const item of list.filter(x=>x.type==='file'&&/\.md$/i.test(x.name||''))){const f=await readFile(item.path);if(f?.text)out.push(parseReview(f.text,item.path))}return out}
 async function saveReview(review){return putFile(`${base()}/review/${review.id}.md`,reviewMarkdown(review),`TaskLiner review: ${review.id}`)}
+async function mergeMasters(target,absorbed,repeats=[],review=null){
+  if(!target?.id||!absorbed?.id||target.id===absorbed.id)throw new Error('Merge対象が正しくありません');
+  const merged=TL.mergeMasterRecords(target,absorbed);
+  await saveMaster(merged);
+  const moved=[];
+  for(const repeat of (Array.isArray(repeats)?repeats:[]).filter(r=>r.master_id===absorbed.id)){
+    const next={...repeat,master_id:merged.id};await saveRepeat(next);moved.push(next);
+  }
+  const archived={...absorbed,status:'archived'};await saveMaster(archived);
+  let savedReview=review;
+  if(review){
+    const remaining=(review.candidate_master_ids||[]).filter(id=>id!==absorbed.id&&id!==merged.id);
+    savedReview={...review,source_master_id:merged.id,candidate_master_ids:remaining,target_master_id:merged.id,last_merged_master_id:absorbed.id,status:remaining.length?'pending':'merged'};
+    await saveReview(savedReview);
+  }
+  return{target:merged,absorbed:archived,repeats:moved,review:savedReview};
+}
 function recentIds(){try{return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]')}catch{return[]}}
 function markRecent(masterId){if(!masterId)return;const ids=[masterId,...recentIds().filter(x=>x!==masterId)].slice(0,500);localStorage.setItem(RECENT_KEY,JSON.stringify(ids))}
 function sortMastersRecent(masters){const pos=new Map(recentIds().map((id,i)=>[id,i]));return[...masters].sort((a,b)=>(pos.get(a.id)??999999)-(pos.get(b.id)??999999)||String(a.title).localeCompare(String(b.title),'ja'))}
@@ -47,5 +77,5 @@ function installWikiDisplay(root){
   const observer=new MutationObserver(records=>{for(const rec of records){if(rec.type==='characterData')cleanText(rec.target);for(const node of rec.addedNodes||[])scan(node)}});observer.observe(target,{subtree:true,childList:true,characterData:true});
 }
 if(typeof document!=='undefined'){const boot=()=>installWikiDisplay(document);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0)}
-window.TaskLinerTemplateStore={cfg,base,listDir,readFile,putFile,deleteFile,loadMasters,pullMasters,readMasterCache,writeMasterCache,getMasterCacheMeta,loadRepeats,saveMaster,deleteMaster,saveRepeat,loadReviews,saveReview,markRecent,sortMastersRecent,createReviewFor,wikiDisplayText,installWikiDisplay};
+window.TaskLinerTemplateStore={cfg,base,listDir,readFile,putFile,deleteFile,loadMasters,pullMasters,readMasterCache,writeMasterCache,getMasterCacheMeta,loadRepeats,saveMaster,deleteMaster,saveRepeat,loadReviews,saveReview,mergeMasters,markRecent,sortMastersRecent,createReviewFor,wikiDisplayText,installWikiDisplay};
 })();
