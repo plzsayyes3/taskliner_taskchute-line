@@ -1,8 +1,169 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>TaskLiner Master</title>
-<style>:root{--bg:#f5f5f2;--panel:#fff;--text:#20211f;--muted:#777a73;--line:#dedfd9;--accent:#2f5d50;--soft:#eef4f1;--warn:#9a682f;--danger:#a33b32}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}.app{max-width:960px;margin:auto;padding:12px 14px 70px}.nav{position:sticky;top:0;z-index:20;display:flex;gap:6px;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(10px);padding:8px 0}.nav a{padding:7px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--muted);text-decoration:none;font-size:12px;font-weight:700}.nav a.active{background:var(--accent);border-color:var(--accent);color:#fff}.head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0 12px}.head h1{font-size:20px;margin:0}.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 10px;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:white;font-weight:700}.btn.danger{border-color:color-mix(in srgb,var(--danger) 45%,var(--line));color:var(--danger);margin-left:auto}.toolbar{display:flex;gap:7px;margin-bottom:10px}.toolbar input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff}.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.72fr);gap:12px}.card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px}.list{display:flex;flex-direction:column;gap:6px}.item{border:1px solid var(--line);border-radius:10px;padding:9px 10px;cursor:pointer}.item:hover{border-color:#b8c8c1}.item.active{outline:2px solid color-mix(in srgb,var(--accent) 25%,transparent)}.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.title{font-size:13px;font-weight:750;min-width:0;overflow-wrap:anywhere;word-break:break-word}.meta{font-size:10px;color:var(--muted);margin-top:3px}.pill{font-size:9px;padding:2px 6px;border-radius:999px;background:var(--soft);color:var(--accent)}.field{margin-bottom:9px}.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}.field input,.field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fafbf9}.actions{display:flex;gap:7px;flex-wrap:wrap}.review{border-left:3px solid #d9b77b}.muted{font-size:11px;color:var(--muted)}h2{font-size:13px;margin:0 0 9px}.status{font-size:11px;color:var(--muted);margin-bottom:8px}@media(max-width:760px){.grid{grid-template-columns:1fr}.nav{top:0}.detail{order:-1}}</style></head>
-<body><div class="app"><nav class="nav"><a href="./today.html">Today</a><a class="active" href="./master.html">Master</a><a href="./repeat.html">Repeat</a></nav>
-<div class="head"><div><h1>Master</h1><div class="muted">タスクそのものを管理</div></div><button id="newBtn" class="btn primary">新規Master</button></div><div id="status" class="status">localStorageを読み込み中…</div>
-<div class="toolbar"><input id="search" placeholder="タイトル / alias を検索" autocomplete="off"><button id="reload" class="btn">Pull</button></div>
-<div class="grid"><section class="card"><h2>Masters</h2><div id="list" class="list"></div></section><section class="card detail"><h2>詳細</h2><div id="empty" class="muted">Masterを選択してください。</div><form id="form" hidden><input id="id" type="hidden"><div class="field"><label>正式タイトル</label><input id="title" required></div><div class="field"><label>aliases（カンマ区切り）</label><input id="aliases"></div><div class="field"><label>標準見積（分）</label><input id="estimate" type="number" min="0" step="5"></div><div class="field"><label>状態</label><select id="masterStatus"><option value="active">active</option><option value="archived">archived</option></select></div><div class="field"><label>Repeat</label><div id="repeatLinks" class="list"></div></div><div class="actions"><button class="btn primary" type="submit">保存</button><a id="newRepeat" class="btn" href="./repeat.html">Repeatを追加</a><button id="deleteBtn" class="btn danger" type="button">削除</button></div></form></section><section class="card" style="grid-column:1/-1"><h2>Review候補</h2><div id="reviews" class="list"></div></section></div></div>
-<script src="./template-core.js"></script><script src="./template-store.js"></script><script>(()=>{'use strict';const TL=TaskLinerTemplates,S=TaskLinerTemplateStore,$=id=>document.getElementById(id);let masters=[],repeats=[],reviews=[],selected='';function status(t){$('status').textContent=t}function esc(t){return String(t||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}function repeatCount(id){return repeats.filter(r=>r.master_id===id&&r.status!=='inactive').length}function render(){const q=TL.norm($('search').value),ordered=S.sortMastersRecent(masters).filter(m=>!q||TL.norm(m.title).includes(q)||(m.aliases||[]).some(a=>TL.norm(a).includes(q)));$('list').innerHTML=ordered.map(m=>`<div class="item ${selected===m.id?'active':''}" data-id="${esc(m.id)}"><div class="row"><div class="title">${esc(TL.displayTitle(m.title))}</div><span class="pill">Repeat ${repeatCount(m.id)}</span></div><div class="meta">${m.aliases?.length?'aliasあり':'aliasなし'} ・ ${m.estimate||0}m ・ ${esc(m.status||'active')}</div></div>`).join('')||'<div class="muted">Masterはありません。Pullしてください。</div>';document.querySelectorAll('#list .item').forEach(el=>el.onclick=()=>openMaster(el.dataset.id));renderReviews()}function openMaster(id){const m=masters.find(x=>x.id===id);if(!m)return;selected=id;S.markRecent(id);$('empty').hidden=true;$('form').hidden=false;$('deleteBtn').hidden=false;$('id').value=m.id;$('title').value=m.title;$('aliases').value=(m.aliases||[]).join(', ');$('estimate').value=m.estimate??0;$('masterStatus').value=m.status||'active';const rs=repeats.filter(r=>r.master_id===id).sort((a,b)=>String(a.planned_at||'99:99').localeCompare(String(b.planned_at||'99:99')));$('repeatLinks').innerHTML=rs.map(r=>`<a class="item" href="./repeat.html?id=${encodeURIComponent(r.id)}"><div class="row"><span>${esc(r.rule)}</span><span class="pill">${esc(r.planned_at||'--:--')}</span></div><div class="meta">${esc(r.section||'sectionなし')}</div></a>`).join('')||'<div class="muted">Repeatなし</div>';$('newRepeat').href=`./repeat.html?master=${encodeURIComponent(id)}`;render()}function renderReviews(){const byId=new Map(masters.map(m=>[m.id,m]));const pending=reviews.filter(r=>r.status==='pending');$('reviews').innerHTML=pending.map(r=>{const source=byId.get(r.source_master_id),cands=(r.candidate_master_ids||[]).map(id=>byId.get(id)).filter(Boolean);return`<div class="item review" data-review="${esc(r.id)}"><div class="title">${esc(TL.displayTitle(source?.title||r.source_master_id))}</div><div class="meta">候補: ${cands.map(c=>esc(TL.displayTitle(c.title))).join(' / ')||'なし'}</div><div class="actions" style="margin-top:7px"><button class="btn review-separate" type="button">別物</button><button class="btn review-later" type="button">後で見る</button></div></div>`}).join('')||'<div class="muted">Review候補はありません。</div>';document.querySelectorAll('.review-separate').forEach(btn=>btn.onclick=async()=>{const el=btn.closest('[data-review]'),r=reviews.find(x=>x.id===el.dataset.review);if(!r)return;r.status='separate';await S.saveReview(r);await reload(false)});document.querySelectorAll('.review-later').forEach(btn=>btn.onclick=()=>status('Review候補はそのまま残します。'))}function cacheLabel(){const meta=S.getMasterCacheMeta(),t=meta.pulled_at?new Date(meta.pulled_at):null;return t&&!Number.isNaN(t.getTime())?` / Pull ${t.toLocaleString('ja-JP')}`:''}async function reload(force=false){status(force?'GitHubからMasterをPull中…':'localStorageからMasterを読み込み中…');try{const masterPromise=force?S.pullMasters():S.loadMasters();[masters,repeats,reviews]=await Promise.all([masterPromise,S.loadRepeats(),S.loadReviews()]);render();const id=new URLSearchParams(location.search).get('id');if(id&&masters.some(m=>m.id===id))openMaster(id);status(`Master ${masters.length}件${cacheLabel()}`)}catch(e){status(`読込失敗: ${e.message}`)}}$('search').oninput=render;$('reload').onclick=()=>reload(true);$('newBtn').onclick=()=>{$('empty').hidden=true;$('form').hidden=false;selected='';$('id').value='';$('title').value='';$('aliases').value='';$('estimate').value='5';$('masterStatus').value='active';$('repeatLinks').innerHTML='<div class="muted">保存後にRepeatを追加できます。</div>';$('deleteBtn').hidden=true;render();$('title').focus()};$('deleteBtn').onclick=async()=>{const id=$('id').value,m=masters.find(x=>x.id===id);if(!m)return;const linked=repeatCount(id);if(linked>0){status(`削除できません: Repeatが${linked}件あります。先にRepeatを解除してください。`);return}if(!confirm(`「${m.title}」を完全に削除しますか？\nArchiveとは異なり、Masterファイルを削除します。\n既存Dailyは変更しません。`))return;status('Masterを削除中…');try{await S.deleteMaster(id);masters=masters.filter(x=>x.id!==id);reviews=reviews.filter(r=>r.source_master_id!==id&&!(r.candidate_master_ids||[]).includes(id));selected='';$('form').hidden=true;$('empty').hidden=false;render();status(`削除しました / Master ${masters.length}件${cacheLabel()}`)}catch(err){status(`削除失敗: ${err.message}`)}};$('form').onsubmit=async e=>{e.preventDefault();const title=$('title').value.trim();if(!title)return;let m=masters.find(x=>x.id===$('id').value);const isNew=!m;if(!m)m={id:TL.id('task'),title:'',aliases:[],status:'active',estimate:0};m.title=title;m.aliases=$('aliases').value.split(',').map(x=>x.trim()).filter(Boolean);m.estimate=Math.max(0,Math.round(Number($('estimate').value)||0));m.status=$('masterStatus').value;status('保存中…');try{await S.saveMaster(m);if(isNew)await S.createReviewFor(m,masters);S.markRecent(m.id);await reload(false);openMaster(m.id);status(`保存しました / Master ${masters.length}件${cacheLabel()}`)}catch(err){status(`保存失敗: ${err.message}`)}};reload(false)})();</script></body></html>
+<style>
+:root{--bg:#f5f5f2;--panel:#fff;--text:#20211f;--muted:#777a73;--line:#dedfd9;--accent:#2f5d50;--soft:#eef4f1;--warn:#9a682f;--danger:#a33b32}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
+button,input,select{font:inherit}.app{max-width:1080px;margin:auto;padding:12px 14px 70px}.nav{position:sticky;top:0;z-index:20;display:flex;gap:6px;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(10px);padding:8px 0}.nav a{padding:7px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--muted);text-decoration:none;font-size:12px;font-weight:700}.nav a.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0 8px}.head h1{font-size:20px;margin:0}.muted{font-size:11px;color:var(--muted)}.status{font-size:11px;color:var(--muted);margin:7px 0 10px}.btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:9px;padding:7px 10px;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}.btn.danger{border-color:color-mix(in srgb,var(--danger) 45%,var(--line));color:var(--danger);margin-left:auto}
+.modes{display:inline-flex;gap:4px;padding:3px;border:1px solid var(--line);border-radius:11px;background:#fff;margin-bottom:10px}.mode{border:0;background:transparent;color:var(--muted);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:750;cursor:pointer}.mode.active{background:var(--accent);color:#fff}.mode .count{opacity:.7;margin-left:4px}
+.toolbar{display:flex;gap:7px;margin-bottom:10px}.toolbar input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff}.card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px}.list{display:flex;flex-direction:column;gap:6px}.item{border:1px solid var(--line);border-radius:10px;padding:10px 11px;cursor:pointer;background:#fff}.item:hover{border-color:#b8c8c1}.item.active{outline:2px solid color-mix(in srgb,var(--accent) 25%,transparent)}.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.title{font-size:13px;font-weight:750;min-width:0;overflow-wrap:anywhere;word-break:break-word}.meta{font-size:10px;color:var(--muted);margin-top:3px}.pill{flex:none;font-size:9px;padding:2px 6px;border-radius:999px;background:var(--soft);color:var(--accent)}
+.view[hidden]{display:none!important}.review{border-left:3px solid #d9b77b}.review-candidates{margin-top:5px}.actions{display:flex;gap:7px;flex-wrap:wrap}
+.drawer-backdrop{position:fixed;inset:0;z-index:70;background:rgba(20,25,23,.2);opacity:0;pointer-events:none;transition:opacity .18s ease}.drawer-backdrop.open{opacity:1;pointer-events:auto}.drawer{position:fixed;z-index:71;top:0;right:0;width:min(460px,92vw);height:100dvh;background:var(--panel);border-left:1px solid var(--line);box-shadow:-18px 0 50px rgba(0,0,0,.14);transform:translateX(102%);transition:transform .2s ease;display:flex;flex-direction:column}.drawer.open{transform:translateX(0)}.drawer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid var(--line)}.drawer-title{font-size:14px;font-weight:800}.drawer-close{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:20px;line-height:1;cursor:pointer}.drawer-body{flex:1;overflow:auto;padding:14px 14px 40px}.field{margin-bottom:9px}.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}.field input,.field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fafbf9}.repeat-list{display:flex;flex-direction:column;gap:6px}.repeat-link{text-decoration:none;color:inherit}.empty-drawer{padding:4px 0 12px;color:var(--muted);font-size:11px}
+@media(max-width:700px){.app{padding:8px 10px 60px}.head{align-items:flex-start}.toolbar{flex-wrap:wrap}.toolbar input{flex-basis:100%}.drawer{width:calc(100vw - 12px);max-width:none}.drawer-head{padding-top:max(13px,env(safe-area-inset-top))}}
+</style></head>
+<body><div class="app">
+<nav class="nav"><a href="./today.html">Today</a><a class="active" href="./master.html">Master</a><a href="./repeat.html">Repeat</a></nav>
+<div class="head"><div><h1>Master</h1><div class="muted">タスクそのものを管理</div></div><button id="newBtn" class="btn primary">新規Master</button></div>
+<div class="modes" role="tablist" aria-label="Master表示モード"><button id="listMode" class="mode active" type="button" role="tab">List <span id="listCount" class="count"></span></button><button id="reviewMode" class="mode" type="button" role="tab">Review <span id="reviewCount" class="count"></span></button></div>
+<div id="status" class="status">localStorageを読み込み中…</div>
+
+<section id="listView" class="view">
+  <div class="toolbar"><input id="search" placeholder="タイトル / alias を検索" autocomplete="off"><button id="reload" class="btn">Pull</button></div>
+  <div class="card"><div id="list" class="list"></div></div>
+</section>
+
+<section id="reviewView" class="view" hidden>
+  <div class="card"><div id="reviews" class="list"></div></div>
+</section>
+</div>
+
+<div id="drawerBackdrop" class="drawer-backdrop"></div>
+<aside id="drawer" class="drawer" aria-label="Master詳細" aria-hidden="true">
+  <header class="drawer-head"><div><div id="drawerTitle" class="drawer-title">Master詳細</div><div id="drawerSub" class="muted"></div></div><button id="drawerClose" class="drawer-close" type="button" aria-label="閉じる">×</button></header>
+  <div class="drawer-body">
+    <div id="empty" class="empty-drawer">Masterを選択してください。</div>
+    <form id="form" hidden>
+      <input id="id" type="hidden">
+      <div class="field"><label>正式タイトル</label><input id="title" required></div>
+      <div class="field"><label>aliases（カンマ区切り）</label><input id="aliases"></div>
+      <div class="field"><label>標準見積（分）</label><input id="estimate" type="number" min="0" step="5"></div>
+      <div class="field"><label>状態</label><select id="masterStatus"><option value="active">active</option><option value="archived">archived</option></select></div>
+      <div class="field"><label>Repeat</label><div id="repeatLinks" class="repeat-list"></div></div>
+      <div class="actions"><button class="btn primary" type="submit">保存</button><a id="newRepeat" class="btn" href="./repeat.html">Repeatを追加</a><button id="deleteBtn" class="btn danger" type="button">削除</button></div>
+    </form>
+  </div>
+</aside>
+
+<script src="./template-core.js?v=20260918-master-modes"></script><script src="./template-store.js?v=20260918-master-modes"></script>
+<script>
+(()=>{'use strict';
+const TL=TaskLinerTemplates,S=TaskLinerTemplateStore,$=id=>document.getElementById(id);
+let masters=[],repeats=[],reviews=[],selected='',mode='list';
+
+function status(t){$('status').textContent=t}
+function esc(t){return String(t||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function repeatCount(id){return repeats.filter(r=>r.master_id===id&&r.status!=='inactive').length}
+function pendingReviews(){return reviews.filter(r=>r.status==='pending')}
+function updateCounts(){$('listCount').textContent=masters.length?masters.length:'';$('reviewCount').textContent=pendingReviews().length?pendingReviews().length:''}
+
+function setMode(next,{replaceUrl=true}={}){
+  mode=next==='review'?'review':'list';
+  $('listMode').classList.toggle('active',mode==='list');
+  $('reviewMode').classList.toggle('active',mode==='review');
+  $('listView').hidden=mode!=='list';
+  $('reviewView').hidden=mode!=='review';
+  if(replaceUrl){
+    const url=new URL(location.href);
+    if(mode==='review')url.searchParams.set('mode','review');else url.searchParams.delete('mode');
+    url.searchParams.delete('id');
+    history.replaceState(null,'',url);
+  }
+  if(mode==='review')renderReviews();else renderList();
+}
+
+function renderList(){
+  const q=TL.norm($('search').value);
+  const ordered=S.sortMastersRecent(masters).filter(m=>!q||TL.norm(m.title).includes(q)||(m.aliases||[]).some(a=>TL.norm(a).includes(q)));
+  $('list').innerHTML=ordered.map(m=>`<div class="item ${selected===m.id?'active':''}" data-id="${esc(m.id)}"><div class="row"><div class="title">${esc(TL.displayTitle(m.title))}</div><span class="pill">Repeat ${repeatCount(m.id)}</span></div><div class="meta">${m.aliases?.length?'aliasあり':'aliasなし'} ・ ${m.estimate||0}m ・ ${esc(m.status||'active')}</div></div>`).join('')||'<div class="muted">Masterはありません。Pullしてください。</div>';
+  document.querySelectorAll('#list .item').forEach(el=>el.onclick=()=>openMaster(el.dataset.id));
+  updateCounts();
+}
+
+function openDrawer(){
+  $('drawerBackdrop').classList.add('open');$('drawer').classList.add('open');$('drawer').setAttribute('aria-hidden','false');
+}
+function closeDrawer({clearUrl=true}={}){
+  $('drawerBackdrop').classList.remove('open');$('drawer').classList.remove('open');$('drawer').setAttribute('aria-hidden','true');
+  if(clearUrl){
+    const url=new URL(location.href);url.searchParams.delete('id');history.replaceState(null,'',url);
+  }
+}
+function openMaster(id){
+  const m=masters.find(x=>x.id===id);if(!m)return;
+  selected=id;S.markRecent(id);
+  $('empty').hidden=true;$('form').hidden=false;$('deleteBtn').hidden=false;
+  $('id').value=m.id;$('title').value=m.title;$('aliases').value=(m.aliases||[]).join(', ');$('estimate').value=m.estimate??0;$('masterStatus').value=m.status||'active';
+  $('drawerTitle').textContent=TL.displayTitle(m.title)||'Master詳細';$('drawerSub').textContent=`${m.estimate||0}m ・ ${m.status||'active'}`;
+  const rs=repeats.filter(r=>r.master_id===id).sort((a,b)=>String(a.planned_at||'99:99').localeCompare(String(b.planned_at||'99:99')));
+  $('repeatLinks').innerHTML=rs.map(r=>`<a class="item repeat-link" href="./repeat.html?id=${encodeURIComponent(r.id)}"><div class="row"><span>${esc(r.rule)}</span><span class="pill">${esc(r.planned_at||'--:--')}</span></div><div class="meta">${esc(r.section||'sectionなし')}</div></a>`).join('')||'<div class="muted">Repeatなし</div>';
+  $('newRepeat').href=`./repeat.html?master=${encodeURIComponent(id)}`;
+  const url=new URL(location.href);url.searchParams.set('id',id);history.replaceState(null,'',url);
+  renderList();openDrawer();
+}
+
+function newMaster(){
+  selected='';$('empty').hidden=true;$('form').hidden=false;$('id').value='';$('title').value='';$('aliases').value='';$('estimate').value='5';$('masterStatus').value='active';
+  $('repeatLinks').innerHTML='<div class="muted">保存後にRepeatを追加できます。</div>';$('deleteBtn').hidden=true;$('newRepeat').href='./repeat.html';
+  $('drawerTitle').textContent='新規Master';$('drawerSub').textContent='';
+  openDrawer();setTimeout(()=>$('title').focus(),0);renderList();
+}
+
+function renderReviews(){
+  const byId=new Map(masters.map(m=>[m.id,m])),pending=pendingReviews();
+  $('reviews').innerHTML=pending.map(r=>{
+    const source=byId.get(r.source_master_id),cands=(r.candidate_master_ids||[]).map(id=>byId.get(id)).filter(Boolean);
+    return`<div class="item review" data-review="${esc(r.id)}"><div class="row"><div class="title review-source" data-master="${esc(source?.id||'')}">${esc(TL.displayTitle(source?.title||r.source_master_id))}</div><span class="pill">Review</span></div><div class="meta review-candidates">似ている候補: ${cands.map(c=>`<span class="review-candidate" data-master="${esc(c.id)}">${esc(TL.displayTitle(c.title))}</span>`).join(' / ')||'なし'}</div><div class="actions" style="margin-top:8px"><button class="btn review-separate" type="button">別物</button><button class="btn review-later" type="button">後で見る</button></div></div>`
+  }).join('')||'<div class="muted">Review候補はありません。</div>';
+  document.querySelectorAll('.review-source,.review-candidate').forEach(el=>{if(el.dataset.master)el.onclick=e=>{e.stopPropagation();openMaster(el.dataset.master)}});
+  document.querySelectorAll('.review-separate').forEach(btn=>btn.onclick=async()=>{const el=btn.closest('[data-review]'),r=reviews.find(x=>x.id===el.dataset.review);if(!r)return;r.status='separate';await S.saveReview(r);await reload(false);setMode('review',{replaceUrl:false})});
+  document.querySelectorAll('.review-later').forEach(btn=>btn.onclick=()=>status('Review候補はそのまま残します。'));
+  updateCounts();
+}
+
+function cacheLabel(){const meta=S.getMasterCacheMeta(),t=meta.pulled_at?new Date(meta.pulled_at):null;return t&&!Number.isNaN(t.getTime())?` / Pull ${t.toLocaleString('ja-JP')}`:''}
+async function reload(force=false){
+  status(force?'GitHubからMasterをPull中…':'localStorageからMasterを読み込み中…');
+  try{
+    const masterPromise=force?S.pullMasters():S.loadMasters();
+    [masters,repeats,reviews]=await Promise.all([masterPromise,S.loadRepeats(),S.loadReviews()]);
+    if(mode==='review')renderReviews();else renderList();
+    const p=new URLSearchParams(location.search),id=p.get('id');
+    if(id&&masters.some(m=>m.id===id))openMaster(id);
+    status(`Master ${masters.length}件 / Review ${pendingReviews().length}件${cacheLabel()}`);
+  }catch(e){status(`読込失敗: ${e.message}`)}
+}
+
+$('search').oninput=renderList;
+$('reload').onclick=()=>reload(true);
+$('newBtn').onclick=newMaster;
+$('listMode').onclick=()=>setMode('list');
+$('reviewMode').onclick=()=>setMode('review');
+$('drawerClose').onclick=()=>closeDrawer();
+$('drawerBackdrop').onclick=()=>closeDrawer();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('drawer').classList.contains('open'))closeDrawer()});
+
+$('deleteBtn').onclick=async()=>{
+  const id=$('id').value,m=masters.find(x=>x.id===id);if(!m)return;
+  const linked=repeatCount(id);if(linked>0){status(`削除できません: Repeatが${linked}件あります。先にRepeatを解除してください。`);return}
+  if(!confirm(`「${m.title}」を完全に削除しますか？\nArchiveとは異なり、Masterファイルを削除します。\n既存Dailyは変更しません。`))return;
+  status('Masterを削除中…');
+  try{
+    await S.deleteMaster(id);masters=masters.filter(x=>x.id!==id);reviews=reviews.filter(r=>r.source_master_id!==id&&!(r.candidate_master_ids||[]).includes(id));selected='';
+    closeDrawer();renderList();renderReviews();status(`削除しました / Master ${masters.length}件${cacheLabel()}`);
+  }catch(err){status(`削除失敗: ${err.message}`)}
+};
+
+$('form').onsubmit=async e=>{
+  e.preventDefault();const title=$('title').value.trim();if(!title)return;
+  let m=masters.find(x=>x.id===$('id').value);const isNew=!m;if(!m)m={id:TL.id('task'),title:'',aliases:[],status:'active',estimate:0};
+  m.title=title;m.aliases=$('aliases').value.split(',').map(x=>x.trim()).filter(Boolean);m.estimate=Math.max(0,Math.round(Number($('estimate').value)||0));m.status=$('masterStatus').value;
+  status('保存中…');
+  try{
+    await S.saveMaster(m);if(isNew)await S.createReviewFor(m,masters);S.markRecent(m.id);await reload(false);openMaster(m.id);
+    status(`保存しました / Master ${masters.length}件${cacheLabel()}`);
+  }catch(err){status(`保存失敗: ${err.message}`)}
+};
+
+const params=new URLSearchParams(location.search);mode=params.get('mode')==='review'?'review':'list';setMode(mode,{replaceUrl:false});reload(false);
+})();
+</script></body></html>
