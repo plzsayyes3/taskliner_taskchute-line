@@ -144,6 +144,14 @@
   function findSimilarMasters(title,masters=[],threshold=.55){
     return masters.filter(activeMaster).map(master=>({master,score:Math.max(similarity(title,master.title),...aliasesOf(master).map(a=>similarity(title,a)),0)})).filter(x=>x.score>=threshold&&norm(x.master.title)!==norm(title)).sort((a,b)=>b.score-a.score);
   }
+  function mergeMasterRecords(target,absorbed){
+    if(!target?.id||!absorbed?.id||target.id===absorbed.id)throw new Error('Mergeには異なる2つのMasterが必要です');
+    const aliases=[],seen=new Set([norm(target.title)]);
+    for(const value of [...aliasesOf(target),absorbed.title,...aliasesOf(absorbed)]){
+      const text=String(value||'').trim(),key=norm(text);if(!text||!key||seen.has(key))continue;seen.add(key);aliases.push(text);
+    }
+    return{...target,aliases,status:'active'};
+  }
   function yamlQuote(value){return JSON.stringify(String(value??''))}
   function serializeMaster(master){
     const aliases=aliasesOf(master).map(x=>`  - ${yamlQuote(x)}`).join('\n');
@@ -190,5 +198,5 @@
     const x=frontmatterObject(markdown);
     return{id:String(x.id||''),master_id:String(x.master_id||''),status:String(x.status||'active'),rule:String(x.rule||'daily'),weekdays:Array.isArray(x.weekdays)?x.weekdays.map(Number).filter(Number.isInteger):[],weekday:x.weekday??'',nth:x.nth??'',anchor_date:String(x.anchor_date||''),section:String(x.section||''),planned_at:String(x.planned_at||''),estimate:x.estimate??''};
   }
-  return{norm,displayTitle,findExactMaster,suggestMasters,isRepeatDue,generateDailyInstances,renderInstanceMarkdown,parseHiddenMetadata,ensureMaster,findSimilarMasters,serializeMaster,serializeRepeat,parseMasterMarkdown,parseRepeatMarkdown,id};
+  return{norm,displayTitle,findExactMaster,suggestMasters,isRepeatDue,generateDailyInstances,renderInstanceMarkdown,parseHiddenMetadata,ensureMaster,findSimilarMasters,mergeMasterRecords,serializeMaster,serializeRepeat,parseMasterMarkdown,parseRepeatMarkdown,id};
 });
