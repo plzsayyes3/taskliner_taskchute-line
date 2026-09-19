@@ -49,10 +49,11 @@ function loadDirtyDates(){try{return new Set(JSON.parse(localStorage.getItem(DIR
 function persistDirtyDates(){localStorage.setItem(DIRTY_KEY,JSON.stringify([...dirtyDates]))}
 function loadKnownSha(){try{return new Map(Object.entries(JSON.parse(localStorage.getItem(SHA_KEY)||'{}')))}catch{return new Map()}}
 function rememberSha(key,sha){if(!key||!sha)return;knownSha.set(key,sha);localStorage.setItem(SHA_KEY,JSON.stringify(Object.fromEntries(knownSha)))}
-function activeDate(){try{return(frame.contentDocument.getElementById('dateBtn').textContent||'').trim().slice(0,10)}catch{return''}}
-function markdownBox(){try{return frame.contentDocument.getElementById('markdownBox')}catch{return null}}
-function importButton(){try{return frame.contentDocument.getElementById('importMdBtn')}catch{return null}}
-function recognizedSections(){try{return frame.contentDocument.querySelectorAll('#sectionMenu .section-menu-list button').length}catch{return 0}}
+function appDocument(){try{const root=frame.contentDocument;if(!root)return null;const nested=root.querySelector('iframe');return nested?.contentDocument||root}catch{return null}}
+function activeDate(){try{return(appDocument()?.getElementById('dateBtn')?.textContent||'').trim().slice(0,10)}catch{return''}}
+function markdownBox(){try{return appDocument()?.getElementById('markdownBox')||null}catch{return null}}
+function importButton(){try{return appDocument()?.getElementById('importMdBtn')||null}catch{return null}}
+function recognizedSections(){try{return appDocument()?.querySelectorAll('#sectionMenu .section-menu-list button').length||0}catch{return 0}}
 function filePath(date=activeDate()){const c=config();if(!date)throw new Error('日付を取得できません');return c.folder?`${c.folder}/${date}.md`:`${date}.md`}
 function splitRepo(repo){const p=repo.split('/').filter(Boolean);if(p.length!==2)throw new Error('Repositoryは owner/repo 形式で入力してください');return p}
 function headers(){const token=config().token;if(!token)throw new Error('Tokenを入力してください');return{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'}}
