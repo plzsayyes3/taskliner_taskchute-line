@@ -165,7 +165,7 @@
     html=html.replace('</body>',heatScript+'</body>');
 
 
-    const focusStyle=\`<style id="taskliner-focus-ui-style">
+    const focusStyle=`<style id="taskliner-focus-ui-style">
       :root{--focus-header-h:58px}
       body{padding-top:var(--focus-header-h)!important}
       .top{position:fixed!important;z-index:45!important;top:0!important;left:0!important;right:0!important;margin:0!important;padding:8px max(12px,calc((100vw - 1080px)/2))!important;min-height:var(--focus-header-h)!important;display:grid!important;grid-template-columns:auto 1fr auto!important;align-items:center!important;gap:12px!important;background:color-mix(in srgb,var(--bg) 94%,transparent)!important;backdrop-filter:blur(14px)!important;border-bottom:1px solid var(--line)!important}
@@ -180,10 +180,10 @@
       .focus-menu-backdrop{position:fixed;z-index:60;inset:0;background:rgba(20,28,30,.18);opacity:0;pointer-events:none;transition:.18s}.focus-menu-backdrop.open{opacity:1;pointer-events:auto}
       .focus-menu-sheet{position:fixed;z-index:61;left:0;right:0;top:0;transform:translateY(-105%);transition:transform .2s ease;background:var(--panel);border-bottom:1px solid var(--line);box-shadow:0 14px 38px rgba(20,30,34,.14);padding:max(12px,env(safe-area-inset-top)) max(14px,calc((100vw - 760px)/2)) 16px}.focus-menu-sheet.open{transform:translateY(0)}.focus-menu-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.focus-menu-head b{font-size:13px}.focus-menu-close{border:0;background:transparent;font-size:22px}.focus-menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.focus-menu-grid button,.focus-menu-grid a{min-height:42px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);text-decoration:none;font:inherit;font-size:11px;font-weight:700}.focus-menu-add{display:grid;grid-template-columns:1fr 76px auto;gap:7px;margin-bottom:10px}.focus-menu-add input{min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:9px;font:inherit}.focus-menu-add button{border:1px solid var(--text);border-radius:9px;background:var(--text);color:#fff;padding:8px 12px;font-weight:700}
       @media(max-width:720px){:root{--focus-header-h:52px}.top{padding:7px 54px 7px 10px!important;grid-template-columns:auto 1fr!important;gap:7px!important}.brand{display:none!important}.clock{font-size:16px!important}.datebar{justify-self:start!important}.datebar .arrow,.today-btn{display:none!important}.date-btn{height:34px!important;min-width:0!important;font-size:13px!important;border:0!important;padding:0 5px!important}.summary-line{justify-self:end!important}.summary-line span:nth-child(n+2){display:none!important}.focus-menu-button{top:8px;right:9px;width:34px;height:34px}.focus-menu-grid{grid-template-columns:repeat(2,1fr)}.focus-menu-add{grid-template-columns:1fr 68px}.focus-menu-add button{grid-column:1/-1}.task{grid-template-columns:31px 1fr!important;padding:7px 7px!important}.status-btn{width:27px!important;height:27px!important;min-width:27px!important}.current{border-radius:9px!important}}
-    <\/style>\`;
+    <\/style>`;
     html=html.replace('</head>',focusStyle+'</head>');
 
-    const focusScript=\`<script id="taskliner-focus-ui-script">
+    const focusScript=`<script id="taskliner-focus-ui-script">
       (()=>{function install(){const tasksRoot=document.getElementById('tasks');if(!tasksRoot){setTimeout(install,40);return}
         const menuButton=document.createElement('button');menuButton.className='focus-menu-button';menuButton.type='button';menuButton.textContent='☰';menuButton.setAttribute('aria-label','メニュー');
         const backdrop=document.createElement('div');backdrop.className='focus-menu-backdrop';
@@ -196,7 +196,7 @@
         tasksRoot.addEventListener('click',event=>{if(event.target.closest('button,a,input,summary,details'))return;const row=event.target.closest('.task');if(!row)return;const selected=row.classList.contains('task-selected');tasksRoot.querySelectorAll('.task-selected').forEach(x=>x.classList.remove('task-selected'));if(!selected)row.classList.add('task-selected')});
         const markRepeat=()=>tasksRoot.querySelectorAll('.task-meta').forEach(meta=>{[...meta.children].forEach(node=>{if(/^Repeat$/i.test(node.textContent.trim()))node.classList.add('repeat-label')})});markRepeat();new MutationObserver(markRepeat).observe(tasksRoot,{childList:true,subtree:true});
       }install()})();
-    <\/script>\`;
+    <\/script>`;
     html=html.replace('</body>',focusScript+'</body>');
 
     const bridgeScript=`<script id="taskliner-theme-bridge">
