@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const files=['master.html','repeat.html','today.html','index-v2.html','taskliner-v2.html'];
+const files=['master.html','repeat.html','today.html','index-v2.html','taskliner-v2.html','taskliner_taskchute-line.html'];
 for(const file of files){
   test(`${file} inline scripts parse`,()=>{
     const html=fs.readFileSync(file,'utf8');
