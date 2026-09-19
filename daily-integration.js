@@ -10,6 +10,16 @@
     const m=String(line||'').match(/^\s*##\s+(.+?)\s*$/);
     return m?m[1].trim():'';
   }
+  function sectionSortKey(value){
+    const text=String(value||'').trim();
+    const match=text.match(/^(\d{1,2})(?::(\d{2}))?\s*[-–—ー〜~]/);
+    if(!match)return[1,0,text];
+    return[0,Number(match[1])*60+Number(match[2]||0),text];
+  }
+  function compareSections(a,b){
+    const left=sectionSortKey(a),right=sectionSortKey(b);
+    return left[0]-right[0]||left[1]-right[1]||left[2].localeCompare(right[2],'ja');
+  }
   function taskLine(line){return /^\s*-\s*\[[ xX/]\]\s+/.test(String(line||''))}
   function visibleTaskTitle(line){
     const m=String(line||'').match(/^\s*-\s*\[[ xX/]\]\s+(.*)$/);if(!m)return'';
@@ -60,7 +70,7 @@
   }
   function mergeGeneratedIntoMarkdown(markdown,instances=[]){
     const lines=String(markdown||'').replace(/\r\n?/g,'\n').split('\n');
-    const sorted=[...instances].sort((a,b)=>String(a.section||'').localeCompare(String(b.section||''),'ja')||String(a.planned_at||'99:99').localeCompare(String(b.planned_at||'99:99'))||String(a.title||'').localeCompare(String(b.title||''),'ja'));
+    const sorted=[...instances].sort((a,b)=>compareSections(a.section,b.section)||String(a.planned_at||'99:99').localeCompare(String(b.planned_at||'99:99'))||String(a.title||'').localeCompare(String(b.title||''),'ja'));
     for(const instance of sorted)insertOne(lines,instance);
     return lines.join('\n');
   }

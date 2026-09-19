@@ -34,6 +34,17 @@ test('missing section is appended without losing existing markdown',()=>{
   assert.match(out,/repeat=r/);
 });
 
+test('generated sections follow clock order instead of string order',()=>{
+  const instances=[
+    {title:'夜',estimate:5,completed:false,master_id:'m3',repeat_id:'r3',section:'19-24',planned_at:'19:00'},
+    {title:'朝',estimate:5,completed:false,master_id:'m1',repeat_id:'r1',section:'7-9',planned_at:'07:00'},
+    {title:'昼',estimate:5,completed:false,master_id:'m2',repeat_id:'r2',section:'9-19',planned_at:'09:00'},
+  ];
+  const out=DI.mergeGeneratedIntoMarkdown('',instances);
+  const sections=[...out.matchAll(/^## (.+)$/gm)].map(match=>match[1]);
+  assert.deepEqual(sections,['7-9','9-19','19-24']);
+});
+
 
 test('existingInstances infers Master from a legacy Daily line without metadata',()=>{
   const masters=[{id:'task_brush',title:'🪥歯を磨く',aliases:[],status:'active',estimate:5}];
