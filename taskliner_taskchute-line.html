@@ -205,7 +205,7 @@
     html=html.replace('</body>',bridgeScript+'</body>');
 
     document.open();document.write(html);document.close();
-  }catch(error){document.body.innerHTML=`<p>TaskLinerの読み込みに失敗しました: ${String(error.message||error)}</p>`}
+  }catch(error){console.error('TaskLiner runtime load failed',error);document.documentElement.innerHTML=`<body><p>TaskLinerの読み込みに失敗しました: ${String(error.message||error)}</p></body>`}
 })();
 </script>
 </head>
