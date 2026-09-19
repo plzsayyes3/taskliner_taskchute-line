@@ -16,3 +16,9 @@ test('taskliner loader resolves app.html when running from srcdoc',()=>{
   assert.match(html,/window\.location\.href\.startsWith\(['"]about:/);
   assert.match(html,/window\.parent\.location\.href/);
 });
+
+test('Today runtime resolves the nested app document',()=>{
+  const html=fs.readFileSync('today.html','utf8');
+  assert.match(html,/v2\?\.querySelector\(['"]iframe['"]\)/);
+  assert.match(html,/nested\?\.contentDocument/);
+});
