@@ -10,3 +10,9 @@ for(const file of files){
     for(const source of scripts)assert.doesNotThrow(()=>new Function(source),`${file} contains invalid JavaScript`);
   });
 }
+
+test('taskliner loader resolves app.html when running from srcdoc',()=>{
+  const html=fs.readFileSync('taskliner_taskchute-line.html','utf8');
+  assert.match(html,/window\.location\.href\.startsWith\(['"]about:/);
+  assert.match(html,/window\.parent\.location\.href/);
+});

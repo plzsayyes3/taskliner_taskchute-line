@@ -13,7 +13,8 @@
   try{
     const THEME_KEY='taskliner_theme_v1';
     const theme=localStorage.getItem(THEME_KEY)||'soft';
-    const url=new URL('./app.html',window.location.href);
+    const baseHref=window.location.href.startsWith('about:')?window.parent.location.href:window.location.href;
+    const url=new URL('./app.html',baseHref);
     url.searchParams.set('_v',String(Date.now()));
     const response=await fetch(url,{cache:'no-store'});
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
