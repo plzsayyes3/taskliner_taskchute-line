@@ -78,4 +78,7 @@ function installWikiDisplay(root){
 }
 if(typeof document!=='undefined'){const boot=()=>installWikiDisplay(document);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0)}
 window.TaskLinerTemplateStore={cfg,base,listDir,readFile,putFile,deleteFile,loadMasters,pullMasters,readMasterCache,writeMasterCache,getMasterCacheMeta,loadRepeats,saveMaster,deleteMaster,saveRepeat,loadReviews,saveReview,mergeMasters,markRecent,sortMastersRecent,createReviewFor,wikiDisplayText,installWikiDisplay};
+if(typeof document!=='undefined'&&!document.querySelector('script[data-taskliner-techo-import]')){
+  const script=document.createElement('script');script.src='./techo-import.js?v=20260920-techo-import';script.dataset.tasklinerTechoImport='1';document.head.append(script);
+}
 })();
