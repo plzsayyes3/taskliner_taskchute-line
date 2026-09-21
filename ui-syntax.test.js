@@ -30,3 +30,10 @@ test('app runtime exposes one-line task UI hooks',()=>{
   assert.match(html,/task-action-settings/);
   assert.match(html,/task-selected/);
 });
+
+test('app uses a muted accessible repeat marker',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/repeat-marker/);
+  assert.match(html,/繰り返し/);
+  assert.doesNotMatch(html,/↻\s*Repeat/);
+});
