@@ -31,8 +31,14 @@ test('filters unknown action keys and preserves configured order',()=>{
 
 test('saves only supported unique keys',()=>{
   const target=storage();
-  assert.deepEqual(UI.save(target,['defer','unknown','defer','end']),['defer','end']);
-  assert.deepEqual(JSON.parse(target.data.get(UI.STORAGE_KEY)),['defer','end']);
+  assert.deepEqual(UI.save(target,['defer','unknown','defer','end']),['defer','end','delete']);
+  assert.deepEqual(JSON.parse(target.data.get(UI.STORAGE_KEY)),['defer','end','delete']);
+});
+
+test('keeps delete visible when migrating an older action setting',()=>{
+  const saved=storage({[UI.STORAGE_KEY]:JSON.stringify(['start','time','more'])});
+  assert.equal(UI.load(saved).includes('delete'),true);
+  assert.equal(UI.keys.find(x=>x.key==='delete').required,true);
 });
 
 test('selecting a task replaces the previous selected task',()=>{
@@ -43,13 +49,13 @@ test('selecting a task replaces the previous selected task',()=>{
 
 test('visibleDefinitions returns only configured actions in definition order',()=>{
   assert.deepEqual(UI.visibleDefinitions(['more','start']),[
-    UI.keys.find(x=>x.key==='start'),UI.keys.find(x=>x.key==='more')
+    UI.keys.find(x=>x.key==='start'),UI.keys.find(x=>x.key==='delete'),UI.keys.find(x=>x.key==='more')
   ]);
 });
 
 test('state-aware actions do not mislabel completion',()=>{
-  assert.deepEqual(UI.availableDefinitions(['complete','previous','start'],'todo').map(x=>x.key),['start','previous']);
-  assert.deepEqual(UI.availableDefinitions(['complete','previous','end'],'running').map(x=>x.key),['complete','end']);
+  assert.deepEqual(UI.availableDefinitions(['complete','previous','start'],'todo').map(x=>x.key),['start','previous','delete']);
+  assert.deepEqual(UI.availableDefinitions(['complete','previous','end'],'running').map(x=>x.key),['complete','end','delete']);
   assert.equal(UI.actionDefinition('complete','done').title,'完了解除');
   assert.equal(UI.actionDefinition('complete','running').title,'完了');
 });

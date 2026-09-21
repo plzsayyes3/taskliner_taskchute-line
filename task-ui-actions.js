@@ -15,23 +15,24 @@
     {key:'previous',label:'前',title:'前回から',defaultVisible:false},
     {key:'up',label:'上',title:'上へ',defaultVisible:false},
     {key:'down',label:'下',title:'下へ',defaultVisible:false},
-    {key:'delete',label:'削',title:'削除',defaultVisible:false},
+    {key:'delete',label:'削',title:'削除',defaultVisible:true,required:true},
     {key:'more',label:'…',title:'その他',defaultVisible:true}
   ]);
   const supported=new Set(keys.map(x=>x.key));
   function uniqueSupported(value){
     const seen=new Set();return(Array.isArray(value)?value:[]).filter(key=>supported.has(key)&&!seen.has(key)&&(seen.add(key),true));
   }
-  function defaults(){return keys.filter(x=>x.defaultVisible).map(x=>x.key)}
+  function ensureRequired(value){return uniqueSupported([...(Array.isArray(value)?value:[]),...keys.filter(x=>x.required).map(x=>x.key)])}
+  function defaults(){return ensureRequired(keys.filter(x=>x.defaultVisible).map(x=>x.key))}
   function load(storage){
     try{
       const parsed=JSON.parse(storage?.getItem?.(STORAGE_KEY)||'null');
-      return Array.isArray(parsed)?uniqueSupported(parsed):defaults();
+      return Array.isArray(parsed)?ensureRequired(parsed):defaults();
     }catch{return defaults()}
   }
-  function save(storage,value){const clean=uniqueSupported(value);storage?.setItem?.(STORAGE_KEY,JSON.stringify(clean));return clean}
+  function save(storage,value){const clean=ensureRequired(value);storage?.setItem?.(STORAGE_KEY,JSON.stringify(clean));return clean}
   function select(current,id){return current===id?null:id}
-  function visibleDefinitions(value){const selected=new Set(uniqueSupported(value));return keys.filter(item=>selected.has(item.key))}
+  function visibleDefinitions(value){const selected=new Set(ensureRequired(value));return keys.filter(item=>selected.has(item.key))}
   function actionDefinition(key,state){
     const item=keys.find(x=>x.key===key);if(!item)return null;
     if(key==='complete'){
