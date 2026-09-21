@@ -17,6 +17,13 @@ test('taskliner loader resolves app.html when running from srcdoc',()=>{
   assert.match(html,/window\.parent\.location\.href/);
 });
 
+test('TaskLiner guards MutationObserver targets before observing',()=>{
+  const html=fs.readFileSync('taskliner_taskchute-line.html','utf8');
+  assert.match(html,/const root=document\.getElementById\('tasks'\);if\(root&&root\.nodeType===1\)new MutationObserver/);
+  assert.match(html,/if\(tasksRoot&&tasksRoot\.nodeType===1\)new MutationObserver/);
+  assert.doesNotMatch(html,/const root=document\.getElementById\('tasks'\);if\(root\)new MutationObserver/);
+});
+
 test('Today runtime resolves the nested app document',()=>{
   const html=fs.readFileSync('today.html','utf8');
   assert.match(html,/v2\?\.querySelector\(['"]iframe['"]\)/);
