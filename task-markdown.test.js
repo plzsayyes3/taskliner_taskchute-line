@@ -24,6 +24,12 @@ test('displayTitle removes Markdown and WikiLink destinations without changing r
   assert.equal(raw,'🐤[英語](shortcuts://run-shortcut?name=English) [[folder/note#見出し|ノート]]');
 });
 
+test('metadata comments stay hidden from task titles',()=>{
+  const raw='- [ ] 定例作業 (10m) <!-- tl:master=m1 repeat=r1 planned=09%3A00 -->';
+  assert.equal(MD.parseTaskLine(raw,'9-19').title,'定例作業');
+  assert.equal(MD.displayTitle('定例作業 <!-- tl:master=m1 -->'),'定例作業');
+});
+
 test('parseMarkdown preserves sections, task nodes, and child memo lines',()=>{
   const result=MD.parseMarkdown('## 7-9\n- [ ] 朝 (5m)\n  - メモ\n## 9-19\n- [x] 夜 (10m)');
   assert.deepEqual(result.tasks.map(x=>[x.title,x.section,x.completed]),[['朝','7-9',false],['夜','9-19',true]]);

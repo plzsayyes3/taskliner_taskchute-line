@@ -47,6 +47,12 @@ test('app uses a muted accessible repeat marker',()=>{
   assert.doesNotMatch(html,/↻\s*Repeat/);
 });
 
+test('app strips hidden TaskLiner metadata from loaded titles',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/stripTaskMetadata/);
+  assert.match(html,/trimEnd\(\)/);
+});
+
 test('app keeps the previous-start action and edge movement guards',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/startTask\(t\.id,true\)/);
