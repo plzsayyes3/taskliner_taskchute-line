@@ -10,7 +10,7 @@ function storage(initial={}){
 test('defines the one-character labels for every existing task action',()=>{
   assert.deepEqual(UI.keys.map(x=>[x.key,x.label,x.title]),[
     ['complete','済','完了'],['start','始','開始'],['end','終','終了'],['time','時','時刻指定'],
-    ['defer','保','保留'],['tomorrow','翌','翌日'],['up','上','上へ'],['down','下','下へ'],
+    ['defer','保','保留'],['tomorrow','翌','翌日'],['previous','前','前回から'],['up','上','上へ'],['down','下','下へ'],
     ['delete','削','削除'],['more','…','その他']
   ]);
 });
@@ -45,4 +45,11 @@ test('visibleDefinitions returns only configured actions in definition order',()
   assert.deepEqual(UI.visibleDefinitions(['more','start']),[
     UI.keys.find(x=>x.key==='start'),UI.keys.find(x=>x.key==='more')
   ]);
+});
+
+test('state-aware actions do not mislabel completion',()=>{
+  assert.deepEqual(UI.availableDefinitions(['complete','previous','start'],'todo').map(x=>x.key),['start','previous']);
+  assert.deepEqual(UI.availableDefinitions(['complete','previous','end'],'running').map(x=>x.key),['complete','end']);
+  assert.equal(UI.actionDefinition('complete','done').title,'完了解除');
+  assert.equal(UI.actionDefinition('complete','running').title,'完了');
 });

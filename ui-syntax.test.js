@@ -37,3 +37,16 @@ test('app uses a muted accessible repeat marker',()=>{
   assert.match(html,/繰り返し/);
   assert.doesNotMatch(html,/↻\s*Repeat/);
 });
+
+test('app keeps the previous-start action and edge movement guards',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/startTask\(t\.id,true\)/);
+  assert.match(html,/globalIndex===0/);
+  assert.match(html,/globalIndex===tasks\.length-1/);
+});
+
+test('app gives completion actions state-specific meaning',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/availableDefinitions\(visibleActionKeys,s\)/);
+  assert.doesNotMatch(html,/const statusAction=/);
+});
