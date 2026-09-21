@@ -29,6 +29,8 @@ test('app runtime exposes one-line task UI hooks',()=>{
   assert.match(html,/selectedTaskId/);
   assert.match(html,/task-action-settings/);
   assert.match(html,/task-selected/);
+  assert.match(html,/task-markdown\.js/);
+  assert.match(html,/createTaskTitle/);
 });
 
 test('app uses a muted accessible repeat marker',()=>{

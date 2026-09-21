@@ -26,13 +26,13 @@ test('loads defaults when storage is absent or invalid',()=>{
 
 test('filters unknown action keys and preserves configured order',()=>{
   const saved=storage({[UI.STORAGE_KEY]:JSON.stringify(['delete','unknown','start','start','more'])});
-  assert.deepEqual(UI.load(saved),['delete','start','more']);
+  assert.deepEqual(UI.load(saved),['delete','start','more','previous']);
 });
 
 test('saves only supported unique keys',()=>{
   const target=storage();
-  assert.deepEqual(UI.save(target,['defer','unknown','defer','end']),['defer','end','delete']);
-  assert.deepEqual(JSON.parse(target.data.get(UI.STORAGE_KEY)),['defer','end','delete']);
+  assert.deepEqual(UI.save(target,['defer','unknown','defer','end']),['defer','end','previous','delete']);
+  assert.deepEqual(JSON.parse(target.data.get(UI.STORAGE_KEY)),['defer','end','previous','delete']);
 });
 
 test('keeps delete visible when migrating an older action setting',()=>{
@@ -49,7 +49,7 @@ test('selecting a task replaces the previous selected task',()=>{
 
 test('visibleDefinitions returns only configured actions in definition order',()=>{
   assert.deepEqual(UI.visibleDefinitions(['more','start']),[
-    UI.keys.find(x=>x.key==='start'),UI.keys.find(x=>x.key==='delete'),UI.keys.find(x=>x.key==='more')
+    UI.keys.find(x=>x.key==='start'),UI.keys.find(x=>x.key==='previous'),UI.keys.find(x=>x.key==='delete'),UI.keys.find(x=>x.key==='more')
   ]);
 });
 

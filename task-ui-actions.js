@@ -12,7 +12,7 @@
     {key:'time',label:'時',title:'時刻指定',defaultVisible:true},
     {key:'defer',label:'保',title:'保留',defaultVisible:true},
     {key:'tomorrow',label:'翌',title:'翌日',defaultVisible:false},
-    {key:'previous',label:'前',title:'前回から',defaultVisible:false},
+    {key:'previous',label:'前',title:'前回から',defaultVisible:true,required:true},
     {key:'up',label:'上',title:'上へ',defaultVisible:false},
     {key:'down',label:'下',title:'下へ',defaultVisible:false},
     {key:'delete',label:'削',title:'削除',defaultVisible:true,required:true},
