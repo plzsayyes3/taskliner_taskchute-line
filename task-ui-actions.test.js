@@ -34,3 +34,15 @@ test('saves only supported unique keys',()=>{
   assert.deepEqual(UI.save(target,['defer','unknown','defer','end']),['defer','end']);
   assert.deepEqual(JSON.parse(target.data.get(UI.STORAGE_KEY)),['defer','end']);
 });
+
+test('selecting a task replaces the previous selected task',()=>{
+  assert.equal(UI.select(null,'task-a'),'task-a');
+  assert.equal(UI.select('task-a','task-b'),'task-b');
+  assert.equal(UI.select('task-b','task-b'),null);
+});
+
+test('visibleDefinitions returns only configured actions in definition order',()=>{
+  assert.deepEqual(UI.visibleDefinitions(['more','start']),[
+    UI.keys.find(x=>x.key==='start'),UI.keys.find(x=>x.key==='more')
+  ]);
+});

@@ -29,5 +29,7 @@
     }catch{return defaults()}
   }
   function save(storage,value){const clean=uniqueSupported(value);storage?.setItem?.(STORAGE_KEY,JSON.stringify(clean));return clean}
-  return{STORAGE_KEY,keys,defaults,load,save};
+  function select(current,id){return current===id?null:id}
+  function visibleDefinitions(value){const selected=new Set(uniqueSupported(value));return keys.filter(item=>selected.has(item.key))}
+  return{STORAGE_KEY,keys,defaults,load,save,select,visibleDefinitions};
 });

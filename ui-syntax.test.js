@@ -22,3 +22,11 @@ test('Today runtime resolves the nested app document',()=>{
   assert.match(html,/v2\?\.querySelector\(['"]iframe['"]\)/);
   assert.match(html,/nested\?\.contentDocument/);
 });
+
+test('app runtime exposes one-line task UI hooks',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/task-ui-actions\.js/);
+  assert.match(html,/selectedTaskId/);
+  assert.match(html,/task-action-settings/);
+  assert.match(html,/task-selected/);
+});
