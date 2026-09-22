@@ -13,6 +13,21 @@ test('rejects empty, traversal, and malformed encoded note paths', () => {
   }
 });
 
+test('resolves a pathless wiki link to its unique Markdown note path', () => {
+  assert.deepEqual(Pull.resolvePath('2026-09.md', ['02_techo/2026-09.md', 'other/readme.md']), {
+    path: '02_techo/2026-09.md', candidates: ['02_techo/2026-09.md']
+  });
+});
+
+test('preserves explicit note paths and reports ambiguous basename matches', () => {
+  assert.deepEqual(Pull.resolvePath('02_techo/2026-09.md', ['02_techo/2026-09.md', 'other/2026-09.md']), {
+    path: '02_techo/2026-09.md', candidates: ['02_techo/2026-09.md']
+  });
+  assert.deepEqual(Pull.resolvePath('2026-09.md', ['02_techo/2026-09.md', 'other/2026-09.md']), {
+    path: null, candidates: ['02_techo/2026-09.md', 'other/2026-09.md']
+  });
+});
+
 test('separates local note caches by repository, branch, and path', () => {
   const first = Pull.cacheKey('owner/notebook', 'main', '02_techo/2026-09.md');
   assert.notEqual(first, Pull.cacheKey('owner/notebook', 'main', '02_techo/2026-10.md'));

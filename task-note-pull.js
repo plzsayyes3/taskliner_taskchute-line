@@ -34,11 +34,24 @@
     return CACHE_PREFIX + [repo, branch, path].map(value => encodeURIComponent(String(value))).join(':');
   }
 
+  function resolvePath(target, paths) {
+    const keyOf = value => String(value || '').normalize('NFC').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').replace(/\.md$/i, '').toLocaleLowerCase('ja');
+    const targetKey = keyOf(target);
+    const hasDirectory = targetKey.includes('/');
+    const candidates = [...new Set((Array.isArray(paths) ? paths : [])
+      .filter(path => /\.md$/i.test(String(path || '')))
+      .filter(path => {
+        const normalized = keyOf(path);
+        return hasDirectory ? normalized === targetKey : normalized.split('/').pop() === targetKey;
+      }))].sort();
+    return { path: candidates.length === 1 ? candidates[0] : null, candidates };
+  }
+
   function cache(storage, { repo, branch, path, sha, content, pulledAt = new Date().toISOString() }) {
     const key = cacheKey(repo, branch, path);
     storage.setItem(key, JSON.stringify({ repo, branch, path, sha, content, pulledAt }));
     return key;
   }
 
-  return { normalizeTarget, cacheKey, cache };
+  return { normalizeTarget, resolvePath, cacheKey, cache };
 });
