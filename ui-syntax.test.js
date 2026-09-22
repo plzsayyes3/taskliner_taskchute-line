@@ -60,6 +60,30 @@ test('app explains where task actions are shown',()=>{
   assert.match(html,/操作を選ぶ/);
 });
 
+test('app installs metadata-aware parsing before the initial load',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.ok(html.indexOf('const parseMarkdownBase=parseMarkdown')<html.lastIndexOf('load();'));
+  assert.ok(html.indexOf('const normalizeTaskBase=normalizeTask')<html.lastIndexOf('load();'));
+});
+
+test('app notifies the sync shell after local task changes',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/notifyHost\('tasks-updated'/);
+  assert.match(html,/window\.top\.postMessage/);
+});
+
+test('sync shell waits for the nested app date before startup pull',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/if\(!date\)\{if\(attempt<60\)setTimeout\(\(\)=>startupPull\(/);
+  assert.match(html,/function appWindow\(\)/);
+  assert.match(html,/win=appWindow\(\)/);
+});
+
+test('sync shell pulls the newly selected date after navigation',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/if\(msg\.type==='date-changed'\)\{refreshSaveState\(\);if\(!dirtyDates\.has\(activeDate\(\)\)\)loadRemote\(\)\}/);
+});
+
 test('app keeps the previous-start action and edge movement guards',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/startTask\(t\.id,true\)/);
