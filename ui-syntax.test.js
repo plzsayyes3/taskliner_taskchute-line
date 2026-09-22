@@ -102,3 +102,10 @@ test('app exposes completion-only in the overflow menu for pending tasks',()=>{
   assert.match(html,/function markDone\(id\)/);
   assert.match(html,/if\(s==='todo'\|\|s==='deferred'\)\{const completion=btn\('完了のみ',\(\)=>markDone\(t\.id\)\)/);
 });
+
+test('metadata is serialized by one layer only',()=>{
+  const html=fs.readFileSync('taskliner-v2.html','utf8');
+  assert.doesNotMatch(html,/if\(t\.masterId\)hidden\.push\(/);
+  const app=fs.readFileSync('app.html','utf8');
+  assert.match(app,/taskToMarkdownBase\(t\)\.replace\(/);
+});

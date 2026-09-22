@@ -26,8 +26,17 @@ test('displayTitle removes Markdown and WikiLink destinations without changing r
 
 test('metadata comments stay hidden from task titles',()=>{
   const raw='- [ ] 定例作業 (10m) <!-- tl:master=m1 repeat=r1 planned=09%3A00 -->';
-  assert.equal(MD.parseTaskLine(raw,'9-19').title,'定例作業');
+  assert.deepEqual(MD.parseTaskLine(raw,'9-19'),{
+    title:'定例作業',estimate:10,start:'',end:'',actualMin:0,completed:false,deferred:false,skipDate:'',section:'9-19',bullet:'-',hadCheckbox:true,estimateStyle:'paren',estimateGap:' ',childLines:[],masterId:'m1',repeatId:'r1',plannedAt:'09:00'
+  });
   assert.equal(MD.displayTitle('定例作業 <!-- tl:master=m1 -->'),'定例作業');
+});
+
+test('duplicate metadata comments are normalized while retaining their fields',()=>{
+  const task=MD.parseTaskLine('- [ ] 定例作業 <!-- tl:master=m1 repeat=r1 --> <!-- tl:master=m1 repeat=r1 -->','9-19');
+  assert.equal(task.title,'定例作業');
+  assert.deepEqual([task.masterId,task.repeatId],['m1','r1']);
+  assert.equal(MD.stripTaskMetadata('定例作業 <!-- tl:master=m1 --> <!-- tl:repeat=r1 -->'),'定例作業');
 });
 
 test('parseMarkdown preserves sections, task nodes, and child memo lines',()=>{
