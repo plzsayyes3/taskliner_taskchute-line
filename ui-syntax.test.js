@@ -53,6 +53,13 @@ test('app strips hidden TaskLiner metadata from loaded titles',()=>{
   assert.match(html,/trimEnd\(\)/);
 });
 
+test('app explains where task actions are shown',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/タスクを選ぶと操作が表示されます/);
+  assert.match(html,/その他の操作は「…」から選べます/);
+  assert.match(html,/操作を選ぶ/);
+});
+
 test('app keeps the previous-start action and edge movement guards',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/startTask\(t\.id,true\)/);
