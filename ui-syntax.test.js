@@ -80,6 +80,11 @@ test('sync shell waits for the nested app date before startup pull',()=>{
   assert.match(html,/win=appWindow\(\)/);
 });
 
+test('sync shell observes task links using the nested app document realm',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/const Observer=doc\.defaultView\?\.MutationObserver\|\|MutationObserver/);
+});
+
 test('sync shell pulls the newly selected date after navigation',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
   assert.match(html,/if\(msg\.type==='date-changed'\)\{refreshSaveState\(\);if\(!dirtyDates\.has\(activeDate\(\)\)\)loadRemote\(\)\}/);
