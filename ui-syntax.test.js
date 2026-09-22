@@ -96,3 +96,9 @@ test('app gives completion actions state-specific meaning',()=>{
   assert.match(html,/availableDefinitions\(visibleActionKeys,s\)/);
   assert.doesNotMatch(html,/const statusAction=/);
 });
+
+test('app exposes completion-only in the overflow menu for pending tasks',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/function markDone\(id\)/);
+  assert.match(html,/if\(s==='todo'\|\|s==='deferred'\)\{const completion=btn\('完了のみ',\(\)=>markDone\(t\.id\)\)/);
+});
