@@ -69,7 +69,8 @@ test('app installs metadata-aware parsing before the initial load',()=>{
 test('app notifies the sync shell after local task changes',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/notifyHost\('tasks-updated'/);
-  assert.match(html,/window\.top\.postMessage/);
+  assert.match(html,/window\.parent\.postMessage/);
+  assert.doesNotMatch(html,/function notifyHost\(type,extra=\{\}\)\{if\(window\.top===window\.self\)return;window\.top\.postMessage/);
 });
 
 test('sync shell waits for the nested app date before startup pull',()=>{
