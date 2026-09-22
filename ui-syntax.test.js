@@ -80,9 +80,10 @@ test('sync shell waits for the nested app date before startup pull',()=>{
   assert.match(html,/win=appWindow\(\)/);
 });
 
-test('sync shell observes task links using the nested app document realm',()=>{
+test('sync shell handles task links through delegated events without observing the nested document',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
-  assert.match(html,/const Observer=doc\.defaultView\?\.MutationObserver\|\|MutationObserver/);
+  assert.match(html,/doc\.addEventListener\('click',activate,true\)/);
+  assert.doesNotMatch(html,/new MutationObserver\([^\n]+\)\.observe\(doc\.body/);
 });
 
 test('sync shell pulls the newly selected date after navigation',()=>{
