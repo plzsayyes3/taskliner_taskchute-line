@@ -48,3 +48,17 @@ test('stores only the pulled note body and its identifying metadata', () => {
     sha: 'abc123', content: '# September', pulledAt: '2026-09-23T00:00:00.000Z'
   });
 });
+
+test('renders note Markdown structure while escaping embedded HTML', () => {
+  assert.equal(
+    Pull.renderMarkdown('# Daily note\n\nA <script>alert(1)</script>\n\n- first\n- <img src=x onerror=alert(1)>'),
+    '<h1>Daily note</h1><p>A &lt;script&gt;alert(1)&lt;/script&gt;</p><ul><li>first</li><li>&lt;img src=x onerror=alert(1)&gt;</li></ul>'
+  );
+});
+
+test('renders external Markdown links but leaves unsafe URL schemes inert', () => {
+  assert.equal(
+    Pull.renderMarkdown('[safe](https://example.com/a?x=1&y=2) [unsafe](javascript:alert(1))'),
+    '<p><a href="https://example.com/a?x=1&amp;y=2" target="_blank" rel="noopener noreferrer">safe</a> [unsafe](javascript:alert(1))</p>'
+  );
+});

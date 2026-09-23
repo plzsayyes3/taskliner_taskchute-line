@@ -69,8 +69,14 @@ test('app installs metadata-aware parsing before the initial load',()=>{
 test('app notifies the sync shell after local task changes',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/notifyHost\('tasks-updated'/);
-  assert.match(html,/window\.parent\.postMessage/);
-  assert.doesNotMatch(html,/function notifyHost\(type,extra=\{\}\)\{if\(window\.top===window\.self\)return;window\.top\.postMessage/);
+  assert.match(html,/function notifyHost\(type,extra=\{\}\)\{if\(window\.top===window\.self\)return;window\.top\.postMessage/);
+  assert.doesNotMatch(html,/function notifyHost\(type,extra=\{\}\)\{if\(window\.top===window\.self\)return;window\.parent\.postMessage/);
+});
+
+test('app sends date navigation requests to the outer sync shell across srcdoc frames',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/window\.top\.postMessage\(\{source:'taskliner',type:'navigation-request'/);
+  assert.doesNotMatch(html,/window\.parent\.postMessage\(\{source:'taskliner',type:'navigation-request'/);
 });
 
 test('sync shell waits for the nested app date before startup pull',()=>{
@@ -84,6 +90,14 @@ test('sync shell handles task links through delegated events without observing t
   const html=fs.readFileSync('legacy-shell.html','utf8');
   assert.match(html,/doc\.addEventListener\('click',activate,true\)/);
   assert.doesNotMatch(html,/new MutationObserver\([^\n]+\)\.observe\(doc\.body/);
+});
+
+test('successful note pulls open a read-only right-side drawer with safely rendered Markdown',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/<aside class="note-drawer" role="dialog" aria-modal="true"/);
+  assert.match(html,/function openNoteDrawer\(path,content,returnFocus=null\)[^\n]+TaskLinerNotePull\.renderMarkdown\(content\)/);
+  assert.match(html,/TaskLinerNotePull\.cache\(localStorage,[^\n]+openNoteDrawer\(path,content,returnFocus\)/);
+  assert.match(html,/pullTaskNote\(raw,link\)/);
 });
 
 test('sync shell pulls the newly selected date after navigation',()=>{
