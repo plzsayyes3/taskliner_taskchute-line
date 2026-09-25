@@ -62,7 +62,7 @@
         if(!taskLine(lines[i]))continue;
         const meta=TL.parseHiddenMetadata(lines[i]);
         const other=String(meta.planned_at||'');
-        const inlineTime=(lines[i].match(/【\\s*(\\d{1,2}:\\d{2})\\s*[-－ー〜~]/)||[])[1]||'');
+        const inlineTime=(lines[i].match(/【\s*(\d{1,2}:\d{2})\s*[-－ー〜~]/)||[])[1]||'';
         const effective=other||inlineTime;
         if(effective&&effective>planned){insertAt=i;break}
       }
@@ -93,7 +93,7 @@
       for(let j=i+1;j<end;j++){
         if(!taskLine(result[j]))continue;
         const meta=TL.parseHiddenMetadata(result[j]);
-        const inlineTime=(result[j].match(/【\\s*(\\d{1,2}:\\d{2})\\s*[-－ー〜~]/)||[])[1]||'';
+        const inlineTime=(result[j].match(/【\s*(\d{1,2}:\d{2})\s*[-－ー〜~]/)||[])[1]||'';
         const planned=String(meta.planned_at||inlineTime||'');
         taskPositions.push({index:j,planned,line:result[j]});
       }
@@ -107,10 +107,10 @@
     return result;
   }
   function mergeGeneratedIntoMarkdown(markdown,instances=[]){
-    const lines=String(markdown||'').replace(/\\r\\n?/g,'\\n').split('\\n');
+    const lines=String(markdown||'').replace(/\r\n?/g,'\n').split('\n');
     const sorted=[...instances].sort((a,b)=>compareSections(a.section,b.section)||String(a.planned_at||'99:99').localeCompare(String(b.planned_at||'99:99'))||String(a.title||'').localeCompare(String(b.title||''),'ja'));
     for(const instance of sorted)insertOne(lines,instance);
-    return sortPlannedTasks(sortClockSectionBlocks(lines)).join('\\n');
+    return sortPlannedTasks(sortClockSectionBlocks(lines)).join('\n');
   }
   return{sectionName,existingInstances,mergeGeneratedIntoMarkdown};
 });
