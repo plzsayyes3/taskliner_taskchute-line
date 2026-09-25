@@ -46,6 +46,19 @@ test('generated sections follow clock order instead of string order',()=>{
 });
 
 
+test('all clock-based sections and planned tasks are ordered even when Daily headings already exist out of order',()=>{
+  const md='## 19-24\n- [ ] 夜の既存タスク 【20:00-20:05 / 5m】\n## 7-9\n- [ ] 朝の既存タスク 【08:00-08:05 / 5m】\n## 9-19\n- [ ] 昼の既存タスク\n';
+  const out=DI.mergeGeneratedIntoMarkdown(md,[
+    {title:'夜のRepeat',estimate:5,completed:false,master_id:'m3',repeat_id:'r3',section:'19-24',planned_at:'19:00'},
+    {title:'朝のRepeat',estimate:5,completed:false,master_id:'m1',repeat_id:'r1',section:'7-9',planned_at:'07:00'},
+  ]);
+  const sections=[...out.matchAll(/^## (.+)$/gm)].map(match=>match[1]);
+  assert.deepEqual(sections,['7-9','9-19','19-24']);
+  assert.ok(out.indexOf('朝のRepeat')<out.indexOf('朝の既存タスク'));
+  assert.ok(out.indexOf('夜のRepeat')<out.indexOf('夜の既存タスク'));
+  assert.ok(out.indexOf('昼の既存タスク')<out.indexOf('夜の既存タスク'));
+});
+
 test('existingInstances infers Master from a legacy Daily line without metadata',()=>{
   const masters=[{id:'task_brush',title:'🪥歯を磨く',aliases:[],status:'active',estimate:5}];
   const md='## 21-24\n- [x] 🪥歯を磨く (5m) 【22:01-22:03 / 2m】\n';
