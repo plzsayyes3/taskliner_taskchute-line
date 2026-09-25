@@ -62,17 +62,55 @@
         if(!taskLine(lines[i]))continue;
         const meta=TL.parseHiddenMetadata(lines[i]);
         const other=String(meta.planned_at||'');
-        if(!other||other>planned){insertAt=i;break}
+        const inlineTime=(lines[i].match(/【\\s*(\\d{1,2}:\\d{2})\\s*[-－ー〜~]/)||[])[1]||'');
+        const effective=other||inlineTime;
+        if(effective&&effective>planned){insertAt=i;break}
       }
     }
     lines.splice(insertAt,0,TL.renderInstanceMarkdown(instance));
     return lines;
   }
+  function sortClockSectionBlocks(lines){
+    const heads=[];
+    for(let i=0;i<lines.length;i++)if(sectionName(lines[i]))heads.push(i);
+    const sortable=heads.map((start,index)=>{
+      const end=heads[index+1]??lines.length;
+      const name=sectionName(lines[start]);
+      return{start,end,name,block:lines.slice(start,end),key:sectionSortKey(name)};
+    });
+    if(!sortable.length||sortable.some(item=>item.key[0]!==0))return lines;
+    const sorted=[...sortable].sort((a,b)=>compareSections(a.name,b.name));
+    if(sorted.every((item,index)=>item===sortable[index]))return lines;
+    const before=lines.slice(0,sortable[0].start),after=lines.slice(sortable.at(-1).end);
+    return[...before,...sorted.flatMap(item=>item.block),...after];
+  }
+  function sortPlannedTasks(lines){
+    const result=[...lines];
+    for(let i=0;i<result.length;i++){
+      if(!sectionName(result[i]))continue;
+      let end=i+1;while(end<result.length&&!sectionName(result[end]))end++;
+      const taskPositions=[];
+      for(let j=i+1;j<end;j++){
+        if(!taskLine(result[j]))continue;
+        const meta=TL.parseHiddenMetadata(result[j]);
+        const inlineTime=(result[j].match(/【\\s*(\\d{1,2}:\\d{2})\\s*[-－ー〜~]/)||[])[1]||'';
+        const planned=String(meta.planned_at||inlineTime||'');
+        taskPositions.push({index:j,planned,line:result[j]});
+      }
+      const positions=taskPositions.filter(item=>item.planned);
+      if(positions.length<2){i=end-1;continue}
+      const sorted=[...positions].sort((a,b)=>a.planned.localeCompare(b.planned));
+      const ordered=[...sorted,...taskPositions.filter(item=>!item.planned)];
+      taskPositions.forEach((position,index)=>{result[position.index]=ordered[index].line});
+      i=end-1;
+    }
+    return result;
+  }
   function mergeGeneratedIntoMarkdown(markdown,instances=[]){
-    const lines=String(markdown||'').replace(/\r\n?/g,'\n').split('\n');
+    const lines=String(markdown||'').replace(/\\r\\n?/g,'\\n').split('\\n');
     const sorted=[...instances].sort((a,b)=>compareSections(a.section,b.section)||String(a.planned_at||'99:99').localeCompare(String(b.planned_at||'99:99'))||String(a.title||'').localeCompare(String(b.title||''),'ja'));
     for(const instance of sorted)insertOne(lines,instance);
-    return lines.join('\n');
+    return sortPlannedTasks(sortClockSectionBlocks(lines)).join('\\n');
   }
   return{sectionName,existingInstances,mergeGeneratedIntoMarkdown};
 });
