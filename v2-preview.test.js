@@ -1,6 +1,12 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {buildPreviewDocument,previewAssetUrl}=require('./v2-preview.js');
+const fs=require('node:fs');
+
+test('preview page refreshes its helper script when the preview loader changes',()=>{
+  const html=fs.readFileSync('v2.html','utf8');
+  assert.match(html,/v2-preview\.js\?v=\d+/);
+});
 
 test('preview asset URLs bypass stale browser caches on each reload',()=>{
   assert.equal(previewAssetUrl('https://raw.example/branch/','app.html',123),'https://raw.example/branch/app.html?preview=123');
