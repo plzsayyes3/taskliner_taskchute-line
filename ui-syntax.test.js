@@ -142,6 +142,7 @@ test('mobile running dock shows estimate progress and the task action overflow m
   assert.match(html,/menuAction\('end',\(\)=>changeExpectedEnd\(running\.id\)\)/);
   assert.match(html,/menuAction\('defer',\(\)=>deferTask\(running\.id\)\)/);
   assert.match(html,/fill\.style\.width=`\$\{Math\.min\(100,Math\.max\(0,progress\.percent\)\)\}%`/);
+  assert.doesNotMatch(html,/\.mobile-running-card\{[^}]*overflow:hidden/);
 });
 
 test('app gives completion actions state-specific meaning',()=>{
