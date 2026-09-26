@@ -112,6 +112,22 @@ test('app keeps the previous-start action and edge movement guards',()=>{
   assert.match(html,/globalIndex===tasks\.length-1/);
 });
 
+test('mobile running dock exposes finish, pause, and reset actions for the active task',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/<section id="mobileRunningDock" class="mobile-running-dock"[^>]*hidden/);
+  assert.match(html,/<button id="mobileFinishBtn"[^>]*>終了<\/button>/);
+  assert.match(html,/<button id="mobilePauseBtn"[^>]*>中断<\/button>/);
+  assert.match(html,/<button id="mobileResetBtn"[^>]*>実行前に戻す<\/button>/);
+  assert.match(html,/function renderMobileRunningDock\(running\)/);
+  assert.match(html,/mobileFinishBtn'\)\.onclick=\(\)=>endTask\(running\.id\)/);
+  assert.match(html,/mobilePauseBtn'\)\.onclick=\(\)=>pauseRunningTask\(running\.id\)/);
+  assert.match(html,/function pauseRunningTask\(id\)\{if\(typeof interruptTask==='function'\)\{interruptTask\(id\);return\}deferTask\(id\)\}/);
+  assert.match(html,/mobileResetBtn'\)\.onclick=\(\)=>resetTask\(running\.id\)/);
+  assert.match(html,/@media\(max-width:720px\)[\s\S]*?\.mobile-running-dock/);
+  const shell=fs.readFileSync('taskliner_taskchute-line.html','utf8');
+  assert.match(shell,/function interruptTask\(id,explicitAt=''/);
+});
+
 test('app gives completion actions state-specific meaning',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/availableDefinitions\(visibleActionKeys,s\)/);
