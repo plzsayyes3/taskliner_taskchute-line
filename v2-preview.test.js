@@ -1,6 +1,11 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {buildPreviewDocument}=require('./v2-preview.js');
+const {buildPreviewDocument,previewAssetUrl}=require('./v2-preview.js');
+
+test('preview asset URLs bypass stale browser caches on each reload',()=>{
+  assert.equal(previewAssetUrl('https://raw.example/branch/','app.html',123),'https://raw.example/branch/app.html?preview=123');
+  assert.equal(previewAssetUrl('https://raw.example/branch/','ui.js?v=1',123),'https://raw.example/branch/ui.js?v=1&preview=123');
+});
 
 test('preview document loads the mobile app without sharing its saved task data',()=>{
   const html='<head></head><script src="./task-markdown.js?v=1"></script><script src="./task-ui-actions.js?v=1"></script><script>const STORAGE_PREFIX=\'taskliner_taskchute_line_v1:\';function pauseRunningTask(id){if(typeof interruptTask===\'function\'){interruptTask(id);return}deferTask(id)}</script>';

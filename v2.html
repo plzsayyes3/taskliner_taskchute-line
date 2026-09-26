@@ -15,7 +15,8 @@
 <script>
 const raw='https://raw.githubusercontent.com/plzsayyes3/taskliner_taskchute-line/design/mobile-running-task-dock/';
 const resources=['app.html','task-markdown.js?v=20260922-markdown','task-ui-actions.js?v=20260921-one-line'];
-Promise.all(resources.map(async path=>{const response=await fetch(raw+path);if(!response.ok)throw new Error(`${path}: HTTP ${response.status}`);return response.text()})).then(([app,markdown,actions])=>{
+const previewRevision=Date.now();
+Promise.all(resources.map(async path=>{const response=await fetch(TaskLinerV2Preview.previewAssetUrl(raw,path,previewRevision));if(!response.ok)throw new Error(`${path}: HTTP ${response.status}`);return response.text()})).then(([app,markdown,actions])=>{
   document.getElementById('preview').srcdoc=TaskLinerV2Preview.buildPreviewDocument(app,markdown,actions);
 }).catch(error=>{
   document.body.innerHTML=`<p style="max-width:32rem;padding:2rem;font:16px/1.6 system-ui;color:#6b2525">プレビューを読み込めませんでした。ページを再読み込みしてください。<br><small>${String(error.message||error)}</small></p>`;
