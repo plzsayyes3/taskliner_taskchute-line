@@ -128,6 +128,22 @@ test('mobile running dock exposes finish, pause, and reset actions for the activ
   assert.match(shell,/function interruptTask\(id,explicitAt=''/);
 });
 
+test('mobile running dock shows estimate progress and the task action overflow menu',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/id="mobileRunningProgress"[^>]*role="progressbar"/);
+  assert.match(html,/id="mobileRunningProgressFill"/);
+  assert.match(html,/id="mobileRunningEstimateLabel"/);
+  assert.match(html,/id="mobileRunningMore"[^>]*class="task-more(?:\s|\")/);
+  assert.match(html,/id="mobileRunningMenu"[^>]*class="task-more-menu mobile-running-menu"/);
+  assert.match(html,/function runningEstimateProgress\(running,seconds\)/);
+  assert.match(html,/Math\.min\(100,Math\.max\(0,progress\.percent\)\)/);
+  assert.match(html,/function renderMobileRunningMenu\(running\)/);
+  assert.match(html,/UI\.availableDefinitions\(visibleActionKeys,'running'\)/);
+  assert.match(html,/menuAction\('end',\(\)=>changeExpectedEnd\(running\.id\)\)/);
+  assert.match(html,/menuAction\('defer',\(\)=>deferTask\(running\.id\)\)/);
+  assert.match(html,/fill\.style\.width=`\$\{Math\.min\(100,Math\.max\(0,progress\.percent\)\)\}%`/);
+});
+
 test('app gives completion actions state-specific meaning',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/availableDefinitions\(visibleActionKeys,s\)/);
