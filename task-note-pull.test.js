@@ -19,6 +19,16 @@ test('resolves a pathless wiki link to its unique Markdown note path', () => {
   });
 });
 
+test('resolves a Japanese note title to its nested vault path instead of the repository root', () => {
+  assert.deepEqual(
+    Pull.resolvePath('1日を気持ちよく終えるために.md', [
+      '11-1_note/1日を気持ちよく終えるために.md',
+      '11-1_note/ミッション・ステートメント.md'
+    ]),
+    { path: '11-1_note/1日を気持ちよく終えるために.md', candidates: ['11-1_note/1日を気持ちよく終えるために.md'] }
+  );
+});
+
 test('preserves explicit note paths and reports ambiguous basename matches', () => {
   assert.deepEqual(Pull.resolvePath('02_techo/2026-09.md', ['02_techo/2026-09.md', 'other/2026-09.md']), {
     path: '02_techo/2026-09.md', candidates: ['02_techo/2026-09.md']

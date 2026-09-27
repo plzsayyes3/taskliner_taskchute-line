@@ -69,14 +69,35 @@ test('app installs metadata-aware parsing before the initial load',()=>{
 test('app notifies the sync shell after local task changes',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/notifyHost\('tasks-updated'/);
-  assert.match(html,/function notifyHost\(type,extra=\{\}\)\{if\(window\.top===window\.self\)return;window\.top\.postMessage/);
-  assert.doesNotMatch(html,/function notifyHost\(type,extra=\{\}\)\{if\(window\.top===window\.self\)return;window\.parent\.postMessage/);
+  assert.match(html,/function notifyHost\(type,extra=\{\}\)\{if\(window\.top===window\.self\)return;window\.TaskLinerHostBridge\.postToSyncShell\(window,/);
+  assert.match(html,/<script src="\.\/taskliner-host-bridge\.js\?v=20260927-date-nav"><\/script>/);
 });
 
-test('app sends date navigation requests to the outer sync shell across srcdoc frames',()=>{
+test('app sends task and date messages to the marked sync shell across nested frames',()=>{
   const html=fs.readFileSync('app.html','utf8');
-  assert.match(html,/window\.top\.postMessage\(\{source:'taskliner',type:'navigation-request'/);
-  assert.doesNotMatch(html,/window\.parent\.postMessage\(\{source:'taskliner',type:'navigation-request'/);
+  const shell=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/TaskLinerHostBridge\.postToSyncShell\(window,\{source:'taskliner',type:'navigation-request'/);
+  assert.match(html,/TaskLinerHostBridge\.postToSyncShell\(window,\{source:'taskliner',type,...extra\}\)/);
+  assert.match(shell,/window\.__tasklinerSyncShell=true/);
+  assert.doesNotMatch(html,/window\.top\.postMessage\(\{source:'taskliner',type:'navigation-request'/);
+});
+
+test('app validates real calendar dates and queues navigation from the pending date',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/<script src="\.\/taskliner-date\.js\?v=20260928-date-safety"><\/script>/);
+  assert.match(html,/TaskLinerDate\.isValidDate\(targetDate\)/);
+  assert.match(html,/dateNavigation\.targetDate\(\),-1/);
+  assert.match(html,/dateNavigation\.targetDate\(\),1/);
+});
+
+test('task wiki-link spans expose the class and keyboard contract used by the shell delegate',()=>{
+  const app=fs.readFileSync('app.html','utf8');
+  const shell=fs.readFileSync('legacy-shell.html','utf8');
+  const runtime=fs.readFileSync('taskliner_taskchute-line.html','utf8');
+  assert.match(app,/node\.className='task-wikilink';node\.setAttribute\('role','link'\);node\.setAttribute\('tabindex','0'\)/);
+  assert.match(runtime,/wiki\.className='task-wikilink';wiki\.setAttribute\('role','link'\);wiki\.setAttribute\('tabindex','0'\)/);
+  assert.match(shell,/event\.target\.closest\?\.\('\.task-wikilink'\)/);
+  assert.match(shell,/if\(raw\)pullTaskNote\(raw,link\)/);
 });
 
 test('sync shell waits for the nested app date before startup pull',()=>{
@@ -103,6 +124,13 @@ test('successful note pulls open a read-only right-side drawer with safely rende
 test('sync shell pulls the newly selected date after navigation',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
   assert.match(html,/if\(msg\.type==='date-changed'\)\{refreshSaveState\(\);if\(!dirtyDates\.has\(activeDate\(\)\)\)loadRemote\(\)\}/);
+});
+
+test('failed date saves cancel the pending in-app navigation request',()=>{
+  const app=fs.readFileSync('app.html','utf8');
+  const shell=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(shell,/reply\(ok\?'navigation-continue':'navigation-cancel'\)/);
+  assert.match(app,/msg\.type==='navigation-cancel'/);
 });
 
 test('app keeps the previous-start action and edge movement guards',()=>{
