@@ -2,6 +2,11 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const files=['master.html','repeat.html','today.html','index-v2.html','taskliner-v2.html','taskliner_taskchute-line.html','legacy-shell.html'];
+function appFunction(name,dependencies={}){
+  const line=fs.readFileSync('app.html','utf8').split('\n').find(value=>value.startsWith(`function ${name}(`));
+  assert.ok(line,`app.html must define ${name}`);
+  return new Function(...Object.keys(dependencies),`return (${line.trim()})`)(...Object.values(dependencies));
+}
 for(const file of files){
   test(`${file} inline scripts parse`,()=>{
     const html=fs.readFileSync(file,'utf8');
@@ -138,6 +143,117 @@ test('app keeps the previous-start action and edge movement guards',()=>{
   assert.match(html,/startTask\(t\.id,true\)/);
   assert.match(html,/globalIndex===0/);
   assert.match(html,/globalIndex===tasks\.length-1/);
+});
+
+test('mobile running dock exposes finish, pause, and reset actions for the active task',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/<section id="mobileRunningDock" class="mobile-running-dock"[^>]*hidden/);
+  assert.match(html,/<button id="mobileFinishBtn"[^>]*>終了<\/button>/);
+  assert.match(html,/<button id="mobilePauseBtn"[^>]*>中断<\/button>/);
+  assert.match(html,/<button id="mobileResetBtn"[^>]*>実行前に戻す<\/button>/);
+  assert.match(html,/function renderMobileRunningDock\(running\)/);
+  assert.match(html,/mobileFinishBtn'\)\.onclick=\(\)=>endTask\(running\.id\)/);
+  assert.match(html,/mobilePauseBtn'\)\.onclick=\(\)=>pauseRunningTask\(running\.id\)/);
+  assert.match(html,/function pauseRunningTask\(id\)\{if\(typeof interruptTask==='function'\)\{interruptTask\(id\);return\}deferTask\(id\)\}/);
+  assert.match(html,/mobileResetBtn'\)\.onclick=\(\)=>resetTask\(running\.id\)/);
+  assert.match(html,/@media\(max-width:720px\)[\s\S]*?\.mobile-running-dock/);
+  const shell=fs.readFileSync('taskliner_taskchute-line.html','utf8');
+  assert.match(shell,/function interruptTask\(id,explicitAt=''/);
+});
+
+test('mobile running dock shows estimate progress and the task action overflow menu',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/id="mobileRunningProgress"[^>]*role="progressbar"/);
+  assert.match(html,/id="mobileRunningProgressFill"/);
+  assert.match(html,/id="mobileRunningEstimateLabel"/);
+  assert.match(html,/id="mobileRunningMore"[^>]*class="task-more(?:\s|\")/);
+  assert.match(html,/id="mobileRunningMenu"[^>]*class="task-more-menu mobile-running-menu"/);
+  assert.match(html,/function runningEstimateProgress\(running,seconds\)/);
+  assert.match(html,/Math\.min\(100,Math\.max\(0,progress\.percent\)\)/);
+  assert.match(html,/function renderMobileRunningMenu\(running\)/);
+  assert.match(html,/UI\.availableDefinitions\(visibleActionKeys,'running'\)/);
+  assert.match(html,/menuAction\('end',\(\)=>changeExpectedEnd\(running\.id\)\)/);
+  assert.match(html,/menuAction\('defer',\(\)=>deferTask\(running\.id\)\)/);
+  assert.match(html,/fill\.style\.width=`\$\{Math\.min\(100,Math\.max\(0,progress\.percent\)\)\}%`/);
+  assert.doesNotMatch(html,/\.mobile-running-card\{[^}]*overflow:hidden/);
+});
+
+test('mobile running dock offers an atomic finish-and-start-next action',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/<button id="mobileNextTaskBtn"[^>]*>終了して次へ<\/button>/);
+  assert.match(html,/function findNextTodoAfter\(items,currentId,stateOf\)/);
+  assert.match(html,/function finishAndStartNext\(items,currentId,at,stateOf,elapsed\)/);
+  assert.match(html,/nextButton=\$\('mobileNextTaskBtn'\)[\s\S]*?nextButton\.onclick=/);
+});
+
+test('mobile running menu replaces estimates with quick choices or half-width integer minutes',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/function parseEstimateMinutes\(raw\)/);
+  assert.match(html,/estimateOptions\.id='mobileEstimateOptions'/);
+  assert.match(html,/for\(const minutes of \[1,5,10,15,30,60\]\)/);
+  assert.match(html,/choice\.dataset\.estimate=String\(minutes\)/);
+  assert.match(html,/input\.inputMode='numeric'/);
+  assert.match(html,/btn\('見積もりを設定'/);
+  assert.match(html,/function setRunningEstimate\(id,raw\)/);
+});
+
+test('next-task action chooses the first pending task after the running task without wrapping',()=>{
+  const findNextTodoAfter=appFunction('findNextTodoAfter');
+  const items=[
+    {id:'before',status:'todo'},
+    {id:'running',status:'running'},
+    {id:'done',status:'done'},
+    {id:'deferred',status:'deferred'},
+    {id:'next',status:'todo'},
+    {id:'later',status:'todo'}
+  ];
+  assert.equal(findNextTodoAfter(items,'running',task=>task.status),items[4]);
+  assert.equal(findNextTodoAfter(items,'later',task=>task.status),null);
+});
+
+test('finish-and-start-next records both tasks at one timestamp and preserves elapsed minutes',()=>{
+  const findNextTodoAfter=appFunction('findNextTodoAfter');
+  const finishAndStartNext=appFunction('finishAndStartNext',{findNextTodoAfter});
+  const current={id:'current',status:'running',start:'09:12',end:'',actualMin:0,completed:false};
+  const next={id:'next',status:'todo',start:'',end:'',actualMin:0,completed:false,deferred:false,skipDate:'2026-09-26'};
+  const items=[current,next];
+  const started=finishAndStartNext(items,'current','09:37',task=>task.status,(from,to)=>25);
+  assert.equal(started,next);
+  assert.deepEqual([current.end,current.actualMin,current.completed],['09:37',25,true]);
+  assert.deepEqual([next.start,next.end,next.actualMin,next.completed,next.deferred,next.skipDate],['09:37','',0,false,false,'']);
+});
+
+test('finish-and-start-next persists the transition only once',()=>{
+  const findNextTodoAfter=appFunction('findNextTodoAfter');
+  const finishAndStartNext=appFunction('finishAndStartNext',{findNextTodoAfter});
+  const current={id:'current',status:'running',start:'09:12',end:'',completed:false};
+  const next={id:'next',status:'todo',start:'',completed:false};
+  let saves=0;
+  const advance=appFunction('advanceRunningTask',{tasks:[current,next],finishAndStartNext,nowTime:()=>'09:37',stateOf:task=>task.status,elapsed:()=>25,save:()=>saves++,toast:()=>{}});
+  advance('current');
+  assert.equal(saves,1);
+  assert.equal(current.end,'09:37');
+  assert.equal(next.start,'09:37');
+});
+
+test('running-task estimate can be replaced and invalid input does not save',()=>{
+  const task={id:'active',status:'running',estimate:10};
+  let saves=0;
+  const setRunningEstimate=appFunction('setRunningEstimate',{
+    tasks:[task],stateOf:item=>item.status,parseEstimateMinutes:appFunction('parseEstimateMinutes'),save:()=>saves++,toast:()=>{}
+  });
+  assert.equal(setRunningEstimate('active','30'),true);
+  assert.equal(task.estimate,30);
+  assert.equal(saves,1);
+  assert.equal(setRunningEstimate('active','３'),false);
+  assert.equal(task.estimate,30);
+  assert.equal(saves,1);
+});
+
+test('estimate input accepts positive half-width whole minutes only',()=>{
+  const parseEstimateMinutes=appFunction('parseEstimateMinutes');
+  assert.equal(parseEstimateMinutes('15'),15);
+  for(const invalid of ['','0','-5','1.5','５'])assert.equal(parseEstimateMinutes(invalid),null,`reject ${invalid}`);
 });
 
 test('app gives completion actions state-specific meaning',()=>{
