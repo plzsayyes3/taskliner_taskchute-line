@@ -163,6 +163,14 @@ test('app keeps the previous-start action and edge movement guards',()=>{
   assert.match(html,/globalIndex===tasks\.length-1/);
 });
 
+test('task URL schemes are promoted to the top window from a real click',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/function openTaskUrl\(raw,event\)/);
+  assert.match(html,/window\.top\.location\.href=value/);
+  assert.match(html,/link\.onclick=e=>openTaskUrl\(target,e\)/);
+  assert.doesNotMatch(html,/link\.onclick=e=>e\.stopPropagation\(\)/);
+});
+
 test('mobile running dock renders Markdown links as labels instead of raw syntax',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/const mobileTitle=\$\('mobileRunningTitle'\);mobileTitle\.replaceChildren\(\);appendTaskLinkedText\(mobileTitle,running\.title\)/);
