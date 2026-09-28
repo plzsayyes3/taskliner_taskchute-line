@@ -163,6 +163,13 @@ test('app keeps the previous-start action and edge movement guards',()=>{
   assert.match(html,/globalIndex===tasks\.length-1/);
 });
 
+test('mobile running dock renders Markdown links as labels instead of raw syntax',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/const mobileTitle=\$\('mobileRunningTitle'\);mobileTitle\.replaceChildren\(\);appendTaskLinkedText\(mobileTitle,running\.title\)/);
+  assert.doesNotMatch(html,/\$\('mobileRunningTitle'\)\.textContent=running\.title/);
+  assert.match(html,/\.task-title-rich a,\.mobile-running-title a\{color:inherit/);
+});
+
 test('mobile running dock exposes finish, pause, and reset actions for the active task',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/<section id="mobileRunningDock" class="mobile-running-dock"[^>]*hidden/);
