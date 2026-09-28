@@ -16,6 +16,11 @@ for(const file of files){
   });
 }
 
+test('GitHub contents fallback helper parses as JavaScript',()=>{
+  const source=fs.readFileSync('taskliner-github-content.js','utf8');
+  assert.doesNotThrow(()=>new Function(source));
+});
+
 test('taskliner loader resolves app.html when running from srcdoc',()=>{
   const html=fs.readFileSync('taskliner_taskchute-line.html','utf8');
   assert.match(html,/window\.location\.href\.startsWith\(['"]about:/);
@@ -116,6 +121,13 @@ test('sync shell handles task links through delegated events without observing t
   const html=fs.readFileSync('legacy-shell.html','utf8');
   assert.match(html,/doc\.addEventListener\('click',activate,true\)/);
   assert.doesNotMatch(html,/new MutationObserver\([^\n]+\)\.observe\(doc\.body/);
+});
+
+test('sync shell loads the tested Git blob-content fallback',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/<script src="\.\/taskliner-github-content\.js\?v=20260928-blob-fallback"><\/script>/);
+  assert.match(html,/TaskLinerGithubContent\.base64Content\(data,sha=>fetchJson\(`\/git\/blobs\/\$\{encodeURIComponent\(sha\)\}`\)\)/);
+  assert.match(html,/encoded=data\?await base64Content\(data\):null/);
 });
 
 test('successful note pulls open a read-only right-side drawer with safely rendered Markdown',()=>{
