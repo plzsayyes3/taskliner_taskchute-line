@@ -21,6 +21,12 @@ test('GitHub contents fallback helper parses as JavaScript',()=>{
   assert.doesNotThrow(()=>new Function(source));
 });
 
+test('sync shell loads autosave scheduler and retries when visibility returns',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/<script src="\.\/taskliner-autosave\.js\?v=20260928-autosave-visible"><\/script>/);
+  assert.match(html,/document\.addEventListener\('visibilitychange',\(\)=>autoSaveScheduler\.visibilityChanged\(\)\)/);
+});
+
 test('taskliner loader resolves app.html when running from srcdoc',()=>{
   const html=fs.readFileSync('taskliner_taskchute-line.html','utf8');
   assert.match(html,/window\.location\.href\.startsWith\(['"]about:/);
