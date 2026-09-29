@@ -116,11 +116,12 @@ test('task wiki-link spans expose the class and keyboard contract used by the sh
   assert.match(shell,/if\(raw\)pullTaskNote\(raw,link\)/);
 });
 
-test('sync shell waits for the nested app date before startup pull',()=>{
+test('sync shell never pulls task data automatically on startup',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
-  assert.match(html,/if\(!date\)\{if\(attempt<60\)setTimeout\(\(\)=>startupPull\(/);
-  assert.match(html,/function appWindow\(\)/);
-  assert.match(html,/win=appWindow\(\)/);
+  assert.doesNotMatch(html,/function startupPull\(/);
+  assert.doesNotMatch(html,/startupPull\(\)/);
+  assert.match(html,/\$\('quickPull'\)\.onclick=loadRemote/);
+  assert.match(html,/\$\('ghLoad'\)\.onclick=loadRemote/);
 });
 
 test('sync shell handles task links through delegated events without observing the nested document',()=>{
@@ -144,9 +145,10 @@ test('successful note pulls open a read-only right-side drawer with safely rende
   assert.match(html,/pullTaskNote\(raw,link\)/);
 });
 
-test('sync shell pulls the newly selected date after navigation',()=>{
+test('sync shell keeps date navigation local until the user manually pulls',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
-  assert.match(html,/if\(msg\.type==='date-changed'\)\{refreshSaveState\(\);if\(!dirtyDates\.has\(activeDate\(\)\)\)loadRemote\(\)\}/);
+  assert.match(html,/if\(msg\.type==='date-changed'\)\{refreshSaveState\(\);status\('日付を切り替えました。GitHubから読み込む場合は pull を押してください'\)\}/);
+  assert.doesNotMatch(html,/date-changed'[\s\S]{0,160}loadRemote\(\)/);
 });
 
 test('failed date saves cancel the pending in-app navigation request',()=>{
