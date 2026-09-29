@@ -77,6 +77,12 @@ test('app runtime exposes one-line task UI hooks',()=>{
   assert.match(html,/createTaskTitle/);
 });
 
+test('pending task titles are slightly muted while running titles keep the base color',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/\.task\.todo \.task-title-rich,\.task\.todo \.task-title-editor\{color:color-mix\(in srgb,var\(--text\) 72%,var\(--muted\)\)\}/);
+  assert.doesNotMatch(html,/\.task\.running \.task-title-rich[^}]*color:/);
+});
+
 test('app uses a muted accessible repeat marker',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/repeat-marker/);
