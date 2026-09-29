@@ -143,6 +143,21 @@ test('task wiki-link spans expose the class and keyboard contract used by the sh
   assert.match(shell,/if\(raw\)pullTaskNote\(raw,link\)/);
 });
 
+test('manual save conflicts offer pull or force overwrite while autosave never forces',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/id="saveConflictPull"[^>]*>Pullして読み直す<\/button>/);
+  assert.match(html,/id="saveConflictForce"[^>]*>強制上書き<\/button>/);
+  assert.match(html,/function saveConflictError\(/);
+  assert.match(html,/error\.code='TASKLINER_SAVE_CONFLICT'/);
+  assert.match(html,/async function performSave\(\{interactive=true,force=false\}=\{\}\)/);
+  assert.match(html,/if\(!force&&current\?\.sha&&known&&current\.sha!==known\)throw saveConflictError/);
+  assert.match(html,/if\(r\.status===409\)throw saveConflictError/);
+  assert.match(html,/if\(opts\.interactive&&!opts\.force\)openSaveConflict\(\)/);
+  assert.match(html,/saveRemote\(\{interactive:true,force:true\}\)/);
+  assert.match(html,/loadRemote\(\{confirmDirty:false\}\)/);
+  assert.match(html,/save:\(\)=>saveRemote\(\{interactive:false,reason:'idle'\}\)/);
+});
+
 test('sync shell never pulls task data automatically on startup',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
   assert.doesNotMatch(html,/function startupPull\(/);
