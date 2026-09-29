@@ -27,3 +27,12 @@ test('deduplicates imported items without merging different times',()=>{
   ];
   assert.equal(Techo.dedupeTasks(items).length,2);
 });
+
+
+test('mounts the techo import action in the Today hamburger menu',()=>{
+  const source=require('node:fs').readFileSync('techo-import.js','utf8');
+  assert.match(source,/doc\.querySelector\('\.menu-actions'\)\|\|doc\.querySelector\('\.actions'\)/);
+  assert.match(source,/button\.id='importTecho'/);
+  assert.match(source,/button\.textContent='手帳からインポート'/);
+  assert.match(source,/closeTodayMenu\(\);importToday\(\)/);
+});
