@@ -40,6 +40,17 @@ test('TaskLiner guards MutationObserver targets before observing',()=>{
   assert.doesNotMatch(html,/const root=document\.getElementById\('tasks'\);if\(root\)new MutationObserver/);
 });
 
+test('Today keeps template controls in a compact hamburger menu',()=>{
+  const html=fs.readFileSync('today.html','utf8');
+  assert.match(html,/id="menuToggle"[^>]*aria-controls="menuPanel"/);
+  assert.match(html,/id="menuPanel" class="menu-panel" hidden/);
+  assert.match(html,/href="\.\/master\.html">Master<\/a>/);
+  assert.match(html,/href="\.\/repeat\.html">Repeat<\/a>/);
+  assert.match(html,/id="generate"[^>]*>Repeatから今日分を生成<\/button>/);
+  assert.match(html,/function closeMenu\(\)/);
+  assert.doesNotMatch(html,/<nav class="nav"><a class="active"/);
+});
+
 test('Today runtime resolves the nested app document',()=>{
   const html=fs.readFileSync('today.html','utf8');
   assert.match(html,/v2\?\.querySelector\(['"]iframe['"]\)/);
