@@ -51,6 +51,16 @@ test('Today keeps template controls in a compact hamburger menu',()=>{
   assert.doesNotMatch(html,/<nav class="nav"><a class="active"/);
 });
 
+test('Today hamburger owns settings and hides the embedded floating gear',()=>{
+  const html=fs.readFileSync('today.html','utf8');
+  assert.match(html,/id="settings"[^>]*>⚙ 設定<\/button>/);
+  assert.match(html,/function syncShell\(\)/);
+  assert.match(html,/function hideEmbeddedSettingsButton\(\)/);
+  assert.match(html,/gear\.hidden=true;gear\.style\.display='none'/);
+  assert.match(html,/function openSettings\(\)\{closeMenu\(\);[\s\S]*getElementById\('syncOpen'\)\.click\(\)/);
+  assert.match(html,/\$\('settings'\)\.onclick=openSettings/);
+});
+
 test('Today runtime resolves the nested app document',()=>{
   const html=fs.readFileSync('today.html','utf8');
   assert.match(html,/v2\?\.querySelector\(['"]iframe['"]\)/);
