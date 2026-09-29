@@ -244,6 +244,7 @@ test('running task end sheet supports manual time, interruption, and estimate-ti
   assert.match(shell,/id="tasklinerEndConfirm"[^>]*>確定<\/button>/);
   assert.match(shell,/id="tasklinerEndEstimate"[^>]*>見積もり時刻で終了<\/button>/);
   assert.match(shell,/estimateBtn\.disabled=!expected/);
+  assert.match(shell,/estimateBtn\.textContent=expected\?\`見積もり時刻で終了（\\\$\{expected\}）\`:'見積もり時刻で終了（未設定）'/);
   assert.match(shell,/endTask\(id,expected\)/);
   assert.match(shell,/if\(interrupted\)interruptTask\(id,at\);else endTask\(id,at\)/);
   assert.match(shell,/@media\(max-width:720px\)\{\.taskliner-time-dialog\{position:fixed;inset:auto 0 0 0/);
