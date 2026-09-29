@@ -207,6 +207,25 @@ test('mobile running dock renders Markdown links as labels instead of raw syntax
   assert.match(html,/\.task-title-rich a,\.mobile-running-title a\{color:inherit/);
 });
 
+test('mobile layout reserves the measured running dock height and keeps the last task reachable',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  const runtime=fs.readFileSync('taskliner_taskchute-line.html','utf8');
+  assert.match(html,/function syncMobileRunningSpace\(dock\)/);
+  assert.match(html,/--mobile-running-space/);
+  assert.match(html,/getBoundingClientRect\(\)\.height\+18/);
+  assert.match(runtime,/padding:5px 10px calc\(var\(--mobile-running-space,72px\) \+ env\(safe-area-inset-bottom\)\)!important/);
+});
+
+test('mobile v2 compacts quick add and visually emphasizes the running task without recoloring its title',()=>{
+  const runtime=fs.readFileSync('taskliner_taskchute-line.html','utf8');
+  assert.match(runtime,/\.add-label\{display:none!important\}/);
+  assert.match(runtime,/\.add-form\{grid-template-columns:minmax\(0,1fr\) 58px 70px!important/);
+  assert.match(runtime,/\.toolbar-help\{display:none!important\}/);
+  assert.match(runtime,/\.task\.running\{border-color:color-mix/);
+  assert.match(runtime,/\.task\.running \.task-title-rich\{font-weight:800!important\}/);
+  assert.doesNotMatch(runtime,/\.task\.running \.task-title-rich\{[^}]*color:/);
+});
+
 test('mobile running dock keeps only finish and next as primary actions',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/<section id="mobileRunningDock" class="mobile-running-dock"[^>]*hidden/);
