@@ -92,10 +92,17 @@
       status(`手帳から${fresh.length}件を追加しました`);
     }catch(error){status(`手帳の読込失敗: ${error.message}`)}
   }
+  function closeTodayMenu(){
+    const panel=doc.getElementById('menuPanel'),toggle=doc.getElementById('menuToggle');
+    if(panel)panel.hidden=true;
+    if(toggle)toggle.setAttribute('aria-expanded','false');
+  }
   function boot(){
-    const actions=doc.querySelector('.actions'),frame=doc.getElementById('todayFrame');
-    if(!actions||!frame||doc.getElementById('importTecho'))return;
-    const button=doc.createElement('button');button.id='importTecho';button.type='button';button.textContent='手帳からインポート';button.onclick=importToday;actions.append(button);
+    const actions=doc.querySelector('.menu-actions')||doc.querySelector('.actions'),frame=doc.getElementById('todayFrame');
+    if(!actions||!frame)return;
+    let button=doc.getElementById('importTecho');
+    if(!button){button=doc.createElement('button');button.id='importTecho';button.type='button';button.textContent='手帳からインポート';actions.append(button)}
+    button.onclick=()=>{closeTodayMenu();importToday()};
   }
   if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(typeof window!=='undefined'?window:null);
