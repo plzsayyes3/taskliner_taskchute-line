@@ -60,7 +60,7 @@ function toast(message,type='success'){
   toastTimer=setTimeout(()=>{el.className='toast'},2600);
 }
 function esc(t){return String(t||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function repeatCount(id){return repeats.filter(r=>r.master_id===id&&r.status!=='inactive').length}
+function repeatCount(id){return repeats.filter(r=>r.master_id===id&&r.status!=='inactive').length}function linkedRepeatCount(id){return repeats.filter(r=>r.master_id===id).length}
 function pendingReviews(){return reviews.filter(r=>r.status==='pending')}
 function updateCounts(){$('listCount').textContent=masters.length?masters.length:'';$('reviewCount').textContent=pendingReviews().length?pendingReviews().length:''}
 
@@ -205,7 +205,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('drawer').classLi
 
 $('deleteBtn').onclick=async()=>{
   const id=$('id').value,m=masters.find(x=>x.id===id);if(!m)return;
-  const linked=repeatCount(id);if(linked>0){status(`削除できません: Repeatが${linked}件あります。先にRepeatを解除してください。`);return}
+  const linked=linkedRepeatCount(id);if(linked>0){status(`削除できません: active / inactiveを含むRepeat参照が${linked}件あります。先にRepeatの参照を解除してください。`);return}
   if(!confirm(`「${m.title}」を完全に削除しますか？\nArchiveとは異なり、Masterファイルを削除します。\n既存Dailyは変更しません。`))return;
   status('Masterを削除中…');
   try{

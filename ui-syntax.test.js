@@ -55,6 +55,13 @@ test('Repeat loading never turns collection failures into an empty successful li
   assert.match(repeat,/catch\(e\)\{status\(`読込失敗: \$\{e\.message\}`\);return false\}/);
 });
 
+test('Master deletion is blocked by inactive Repeat references too',()=>{
+  const master=fs.readFileSync('master.html','utf8');
+  assert.match(master,/function repeatCount\(id\)\{return repeats\.filter\(r=>r\.master_id===id&&r\.status!=='inactive'\)\.length\}function linkedRepeatCount\(id\)\{return repeats\.filter\(r=>r\.master_id===id\)\.length\}/);
+  assert.match(master,/const linked=linkedRepeatCount\(id\);if\(linked>0\)\{status\(`削除できません: active \/ inactiveを含むRepeat参照が\$\{linked\}件あります。先にRepeatの参照を解除してください。`\);return\}/);
+  assert.match(master,/Repeat \$\{repeatCount\(m\.id\)\}/);
+});
+
 test('biweekly Repeat derives weekday from its anchor date and rejects a missing anchor',()=>{
   const repeat=fs.readFileSync('repeat.html','utf8');
   assert.match(repeat,/function weekdayOfDate\(value\)/);
