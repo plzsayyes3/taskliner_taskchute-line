@@ -150,7 +150,11 @@ test('manual save conflicts offer pull or force overwrite while autosave never f
   assert.match(html,/function saveConflictError\(/);
   assert.match(html,/error\.code='TASKLINER_SAVE_CONFLICT'/);
   assert.match(html,/async function performSave\(\{interactive=true,force=false\}=\{\}\)/);
-  assert.match(html,/if\(!force&&current\?\.sha&&known&&current\.sha!==known\)throw saveConflictError/);
+  assert.match(html,/function assertSafeSave\(\{current,known,localText,force=false\}\)/);
+  assert.match(html,/if\(!known\)throw saveConflictError\('GitHubに既存データがあります。保存前にPullしてください。'\)/);
+  assert.match(html,/if\(current\.sha!==known\)throw saveConflictError\('GitHub側の内容が更新されています。先にPullしてください。'\)/);
+  assert.match(html,/Number\(current\.size\|\|0\)>0&&!String\(localText\|\|''\)\.trim\(\)/);
+  assert.match(html,/assertSafeSave\(\{current,known,localText:box\.value,force\}\)/);
   assert.match(html,/if\(r\.status===409\)throw saveConflictError/);
   assert.match(html,/if\(opts\.interactive&&!opts\.force\)openSaveConflict\(\)/);
   assert.match(html,/saveRemote\(\{interactive:true,force:true\}\)/);
@@ -174,9 +178,17 @@ test('sync shell handles task links through delegated events without observing t
 
 test('sync shell loads the tested Git blob-content fallback',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
-  assert.match(html,/<script src="\.\/taskliner-github-content\.js\?v=20260928-blob-fallback"><\/script>/);
+  assert.match(html,/<script src="\.\/taskliner-github-content\.js\?v=20260930-empty-safe"><\/script>/);
   assert.match(html,/TaskLinerGithubContent\.base64Content\(data,sha=>fetchJson\(`\/git\/blobs\/\$\{encodeURIComponent\(sha\)\}`\)\)/);
   assert.match(html,/encoded=data\?await base64Content\(data\):null/);
+});
+
+test('empty remote day files are reported without clearing the current screen',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/if\(!text\.trim\(\)\)\{forgetSha\(key\);missing=true;/);
+  assert.match(html,/画面の内容は変更していません。復元後にもう一度Pullしてください。/);
+  assert.match(html,/saveState\('GitHub側が空','error'\)/);
+  assert.ok(html.indexOf("if(!text.trim())")<html.indexOf('box.value=text'));
 });
 
 test('successful note pulls open a read-only right-side drawer with safely rendered Markdown',()=>{
