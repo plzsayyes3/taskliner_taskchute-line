@@ -40,6 +40,16 @@ test('TaskLiner guards MutationObserver targets before observing',()=>{
   assert.doesNotMatch(html,/const root=document\.getElementById\('tasks'\);if\(root\)new MutationObserver/);
 });
 
+test('editing an existing Repeat requires the SHA loaded with that Repeat',()=>{
+  const store=fs.readFileSync('template-store.js','utf8');
+  const repeat=fs.readFileSync('repeat.html','utf8');
+  assert.match(store,/async function saveRepeat\(repeat,options=\{\}\)/);
+  assert.match(store,/TL\.serializeRepeat\(repeat\),`TaskLiner repeat: \$\{repeat\.id\}`,options/);
+  assert.match(repeat,/const current=repeats\.find\(x=>x\.id===\$\('rid'\)\.value\)\|\|null,r=\{\.\.\.\(current\|\|\{id:TL\.id\('repeat'\),master_id:masterId\}\)\}/);
+  assert.match(repeat,/S\.saveRepeat\(r,current\?\{expectedSha:current\._sha\|\|''\}:\{\}\)/);
+  assert.match(repeat,/_sha:result\?\.content\?\.sha\|\|r\._sha\|\|''/);
+});
+
 test('Repeat daily generation uses the SHA that was originally read',()=>{
   const store=fs.readFileSync('template-store.js','utf8');
   const repeat=fs.readFileSync('repeat.html','utf8');
