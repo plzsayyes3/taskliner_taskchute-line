@@ -40,6 +40,19 @@ test('TaskLiner guards MutationObserver targets before observing',()=>{
   assert.doesNotMatch(html,/const root=document\.getElementById\('tasks'\);if\(root\)new MutationObserver/);
 });
 
+test('Repeat loading never turns collection failures into an empty successful list',()=>{
+  const store=fs.readFileSync('template-store.js','utf8');
+  const repeat=fs.readFileSync('repeat.html','utf8');
+  assert.match(store,/async function loadCollection\(sub,parser,options=\{\}\)/);
+  assert.doesNotMatch(store,/try\{list=await listDir\([^\n]+\)\}catch\{return\[\]\}/);
+  assert.match(store,/if\(!Array\.isArray\(list\)\)throw new Error\(`/);
+  assert.match(store,/if\(!file\)throw new Error\('ファイルが見つかりません'\)/);
+  assert.match(store,/if\(!obj\.id\)throw new Error\('idがありません'\)/);
+  assert.match(store,/if\(strict&&failures\.length\)/);
+  assert.match(store,/loadCollection\('repeats',TL\.parseRepeatMarkdown,\{strict:true,label:'Repeat'\}\)/);
+  assert.match(repeat,/catch\(e\)\{status\(`読込失敗: \$\{e\.message\}`\);return false\}/);
+});
+
 test('editing an existing Repeat requires the SHA loaded with that Repeat',()=>{
   const store=fs.readFileSync('template-store.js','utf8');
   const repeat=fs.readFileSync('repeat.html','utf8');
