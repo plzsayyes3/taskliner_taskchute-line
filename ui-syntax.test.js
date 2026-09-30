@@ -40,6 +40,17 @@ test('TaskLiner guards MutationObserver targets before observing',()=>{
   assert.doesNotMatch(html,/const root=document\.getElementById\('tasks'\);if\(root\)new MutationObserver/);
 });
 
+test('Repeat daily generation uses the SHA that was originally read',()=>{
+  const store=fs.readFileSync('template-store.js','utf8');
+  const repeat=fs.readFileSync('repeat.html','utf8');
+  assert.match(store,/async function putFile\(path,content,message,options=\{\}\)/);
+  assert.match(store,/hasExpected=Object\.prototype\.hasOwnProperty\.call\(options,'expectedSha'\)/);
+  assert.match(store,/currentSha=current\?\.sha\|\|'',expectedSha=String\(options\.expectedSha\|\|''\)/);
+  assert.match(store,/if\(hasExpected&&currentSha!==expectedSha\)throw new Error\('GitHub側のファイルが更新されています。再読込してからもう一度実行してください。'\)/);
+  assert.match(store,/return d\?\.sha\?\{text:decode\(d\.content\|\|''\),sha:d\.sha\}:null/);
+  assert.match(repeat,/S\.putFile\(path,merged,`TaskLiner repeat generate: \$\{date\}`,\{expectedSha:file\?\.sha\|\|''\}\)/);
+});
+
 test('template store bypasses browser cache for GitHub GET reads',()=>{
   const source=fs.readFileSync('template-store.js','utf8');
   assert.match(source,/if\(method==='GET'\)request\.cache='no-store'/);
