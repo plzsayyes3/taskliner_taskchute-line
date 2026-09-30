@@ -55,6 +55,14 @@ test('Repeat loading never turns collection failures into an empty successful li
   assert.match(repeat,/catch\(e\)\{status\(`読込失敗: \$\{e\.message\}`\);return false\}/);
 });
 
+test('Repeat Master selection is invalidated when the visible Master text changes',()=>{
+  const repeat=fs.readFileSync('repeat.html','utf8');
+  assert.match(repeat,/function masterInputChanged\(\)\{\$\('masterId'\)\.value='';\$\('masterLink'\)\.href='\.\/master\.html';suggestions\(\)\}/);
+  assert.match(repeat,/\$\('masterQuery'\)\.oninput=masterInputChanged/);
+  assert.match(repeat,/const masterId=\$\('masterId'\)\.value,master=masters\.find\(x=>x\.id===masterId\),shown=\$\('masterQuery'\)\.value\.trim\(\)/);
+  assert.match(repeat,/if\(!masterId\|\|!master\|\|shown!==TL\.displayTitle\(master\.title\)\.trim\(\)\)\{status\('Masterを候補から選択してください'\);return\}/);
+});
+
 test('editing an existing Repeat requires the SHA loaded with that Repeat',()=>{
   const store=fs.readFileSync('template-store.js','utf8');
   const repeat=fs.readFileSync('repeat.html','utf8');
