@@ -150,7 +150,11 @@ test('manual save conflicts offer pull or force overwrite while autosave never f
   assert.match(html,/function saveConflictError\(/);
   assert.match(html,/error\.code='TASKLINER_SAVE_CONFLICT'/);
   assert.match(html,/async function performSave\(\{interactive=true,force=false\}=\{\}\)/);
-  assert.match(html,/if\(!force&&current\?\.sha&&known&&current\.sha!==known\)throw saveConflictError/);
+  assert.match(html,/function assertSafeSave\(\{current,known,localText,force=false\}\)/);
+  assert.match(html,/if\(!known\)throw saveConflictError\('GitHubに既存データがあります。保存前にPullしてください。'\)/);
+  assert.match(html,/if\(current\.sha!==known\)throw saveConflictError\('GitHub側の内容が更新されています。先にPullしてください。'\)/);
+  assert.match(html,/Number\(current\.size\|\|0\)>0&&!String\(localText\|\|''\)\.trim\(\)/);
+  assert.match(html,/assertSafeSave\(\{current,known,localText:box\.value,force\}\)/);
   assert.match(html,/if\(r\.status===409\)throw saveConflictError/);
   assert.match(html,/if\(opts\.interactive&&!opts\.force\)openSaveConflict\(\)/);
   assert.match(html,/saveRemote\(\{interactive:true,force:true\}\)/);
@@ -162,8 +166,8 @@ test('sync shell never pulls task data automatically on startup',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
   assert.doesNotMatch(html,/function startupPull\(/);
   assert.doesNotMatch(html,/startupPull\(\)/);
-  assert.match(html,/\$\('quickPull'\)\.onclick=loadRemote/);
-  assert.match(html,/\$\('ghLoad'\)\.onclick=loadRemote/);
+  assert.match(html,/\$\('quickPull'\)\.onclick=\(\)=>loadRemote\(\)/);
+  assert.match(html,/\$\('ghLoad'\)\.onclick=\(\)=>loadRemote\(\)/);
 });
 
 test('sync shell handles task links through delegated events without observing the nested document',()=>{
@@ -174,9 +178,17 @@ test('sync shell handles task links through delegated events without observing t
 
 test('sync shell loads the tested Git blob-content fallback',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
-  assert.match(html,/<script src="\.\/taskliner-github-content\.js\?v=20260928-blob-fallback"><\/script>/);
+  assert.match(html,/<script src="\.\/taskliner-github-content\.js\?v=20260930-empty-safe"><\/script>/);
   assert.match(html,/TaskLinerGithubContent\.base64Content\(data,sha=>fetchJson\(`\/git\/blobs\/\$\{encodeURIComponent\(sha\)\}`\)\)/);
   assert.match(html,/encoded=data\?await base64Content\(data\):null/);
+});
+
+test('empty remote day files are reported without clearing the current screen',()=>{
+  const html=fs.readFileSync('legacy-shell.html','utf8');
+  assert.match(html,/if\(!text\.trim\(\)\)\{forgetSha\(key\);missing=true;/);
+  assert.match(html,/画面の内容は変更していません。復元後にもう一度Pullしてください。/);
+  assert.match(html,/saveState\('GitHub側が空','error'\)/);
+  assert.ok(html.indexOf("if(!text.trim())")<html.indexOf('box.value=text'));
 });
 
 test('successful note pulls open a read-only right-side drawer with safely rendered Markdown',()=>{
@@ -264,17 +276,20 @@ test('mobile running overflow contains reset, hold, and estimate only',()=>{
   assert.match(html,/btn\('見積もり設定'/);
   assert.match(html,/holdMobileRunningTask\(running\.id\)/);
   assert.doesNotMatch(html,/UI\.availableDefinitions\(visibleActionKeys,'running'\)/);
-  assert.doesNotMatch(html,/menuAction\('end'/);
-  assert.doesNotMatch(html,/menuAction\('tomorrow'/);
+  const mobileMenuLine=html.split('\n').find(line=>line.startsWith('function renderMobileRunningMenu('));
+  assert.ok(mobileMenuLine);
+  assert.doesNotMatch(mobileMenuLine,/menuAction\('end'/);
+  assert.doesNotMatch(mobileMenuLine,/menuAction\('tomorrow'/);
   assert.match(html,/fill\.style\.width=`\$\{Math\.min\(100,Math\.max\(0,progress\.percent\)\)\}%`/);
 });
 
 test('mobile running dock offers an atomic finish-and-start-next action',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/<button id="mobileNextTaskBtn"[^>]*>終了して次へ<\/button>/);
-  assert.match(html,/function findNextTodoAfter\(items,currentId,stateOf\)/);
-  assert.match(html,/function finishAndStartNext\(items,currentId,at,stateOf,elapsed\)/);
-  assert.match(html,/nextButton=\$\('mobileNextTaskBtn'\)[\s\S]*?nextButton\.onclick=/);
+  assert.match(html,/function findFirstTodoInDocument\(nodes,items,stateOf,excludeId=''\)/);
+  assert.match(html,/function finishAndStartNext\(items,nodes,currentId,at,stateOf,elapsed\)/);
+  assert.match(html,/next=findFirstTodoInDocument\(documentNodes,tasks,stateOf,running\.id\)/);
+  assert.match(html,/nextButton\.onclick=next\?\(\)=>advanceRunningTask\(running\.id\):null/);
 });
 
 test('running task end sheet supports manual time, interruption, and estimate-time completion',()=>{
@@ -284,7 +299,7 @@ test('running task end sheet supports manual time, interruption, and estimate-ti
   assert.match(shell,/id="tasklinerEndConfirm"[^>]*>確定<\/button>/);
   assert.match(shell,/id="tasklinerEndEstimate"[^>]*>見積もり時刻で終了<\/button>/);
   assert.match(shell,/estimateBtn\.disabled=!expected/);
-  assert.match(shell,/estimateBtn\.textContent=expected\?\`見積もり時刻で終了（\\\$\{expected\}）\`:'見積もり時刻で終了（未設定）'/);
+  assert.match(shell,/estimateBtn\.textContent=expected\?\`見積もり時刻で終了（\$\{expected\}）\`:'見積もり時刻で終了（未設定）'/);
   assert.match(shell,/endTask\(id,expected\)/);
   assert.match(shell,/if\(interrupted\)interruptTask\(id,at\);else endTask\(id,at\)/);
   assert.match(shell,/@media\(max-width:720px\)\{\.taskliner-time-dialog\{position:fixed;inset:auto 0 0 0/);
