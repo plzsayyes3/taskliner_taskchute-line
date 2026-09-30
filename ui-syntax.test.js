@@ -166,8 +166,8 @@ test('sync shell never pulls task data automatically on startup',()=>{
   const html=fs.readFileSync('legacy-shell.html','utf8');
   assert.doesNotMatch(html,/function startupPull\(/);
   assert.doesNotMatch(html,/startupPull\(\)/);
-  assert.match(html,/\$\('quickPull'\)\.onclick=loadRemote/);
-  assert.match(html,/\$\('ghLoad'\)\.onclick=loadRemote/);
+  assert.match(html,/\$\('quickPull'\)\.onclick=\(\)=>loadRemote\(\)/);
+  assert.match(html,/\$\('ghLoad'\)\.onclick=\(\)=>loadRemote\(\)/);
 });
 
 test('sync shell handles task links through delegated events without observing the nested document',()=>{
@@ -276,17 +276,20 @@ test('mobile running overflow contains reset, hold, and estimate only',()=>{
   assert.match(html,/btn\('見積もり設定'/);
   assert.match(html,/holdMobileRunningTask\(running\.id\)/);
   assert.doesNotMatch(html,/UI\.availableDefinitions\(visibleActionKeys,'running'\)/);
-  assert.doesNotMatch(html,/menuAction\('end'/);
-  assert.doesNotMatch(html,/menuAction\('tomorrow'/);
+  const mobileMenuLine=html.split('\n').find(line=>line.startsWith('function renderMobileRunningMenu('));
+  assert.ok(mobileMenuLine);
+  assert.doesNotMatch(mobileMenuLine,/menuAction\('end'/);
+  assert.doesNotMatch(mobileMenuLine,/menuAction\('tomorrow'/);
   assert.match(html,/fill\.style\.width=`\$\{Math\.min\(100,Math\.max\(0,progress\.percent\)\)\}%`/);
 });
 
 test('mobile running dock offers an atomic finish-and-start-next action',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/<button id="mobileNextTaskBtn"[^>]*>終了して次へ<\/button>/);
-  assert.match(html,/function findNextTodoAfter\(items,currentId,stateOf\)/);
-  assert.match(html,/function finishAndStartNext\(items,currentId,at,stateOf,elapsed\)/);
-  assert.match(html,/nextButton=\$\('mobileNextTaskBtn'\)[\s\S]*?nextButton\.onclick=/);
+  assert.match(html,/function findFirstTodoInDocument\(nodes,items,stateOf,excludeId=''\)/);
+  assert.match(html,/function finishAndStartNext\(items,nodes,currentId,at,stateOf,elapsed\)/);
+  assert.match(html,/next=findFirstTodoInDocument\(documentNodes,tasks,stateOf,running\.id\)/);
+  assert.match(html,/nextButton\.onclick=next\?\(\)=>advanceRunningTask\(running\.id\):null/);
 });
 
 test('running task end sheet supports manual time, interruption, and estimate-time completion',()=>{
@@ -296,7 +299,7 @@ test('running task end sheet supports manual time, interruption, and estimate-ti
   assert.match(shell,/id="tasklinerEndConfirm"[^>]*>確定<\/button>/);
   assert.match(shell,/id="tasklinerEndEstimate"[^>]*>見積もり時刻で終了<\/button>/);
   assert.match(shell,/estimateBtn\.disabled=!expected/);
-  assert.match(shell,/estimateBtn\.textContent=expected\?\`見積もり時刻で終了（\\\$\{expected\}）\`:'見積もり時刻で終了（未設定）'/);
+  assert.match(shell,/estimateBtn\.textContent=expected\?\`見積もり時刻で終了（\$\{expected\}）\`:'見積もり時刻で終了（未設定）'/);
   assert.match(shell,/endTask\(id,expected\)/);
   assert.match(shell,/if\(interrupted\)interruptTask\(id,at\);else endTask\(id,at\)/);
   assert.match(shell,/@media\(max-width:720px\)\{\.taskliner-time-dialog\{position:fixed;inset:auto 0 0 0/);
