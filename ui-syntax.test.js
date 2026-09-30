@@ -55,6 +55,17 @@ test('Repeat loading never turns collection failures into an empty successful li
   assert.match(repeat,/catch\(e\)\{status\(`読込失敗: \$\{e\.message\}`\);return false\}/);
 });
 
+test('Repeat save blocks double submit and exact active schedule duplicates',()=>{
+  const repeat=fs.readFileSync('repeat.html','utf8');
+  assert.match(repeat,/id="saveBtn" class="btn primary" type="submit">保存<\/button>/);
+  assert.match(repeat,/let masters=\[\],repeats=\[\],selected='',saving=false/);
+  assert.match(repeat,/if\(saving\)return/);
+  assert.match(repeat,/saving=true;\$\('saveBtn'\)\.disabled=true;\$\('saveBtn'\)\.textContent='保存中…'/);
+  assert.match(repeat,/const latest=await S\.loadRepeats\(\),key=TL\.repeatScheduleKey\(r\),duplicate=latest\.find\(x=>x\.id!==r\.id&&\(x\.status\|\|'active'\)==='active'&&TL\.repeatScheduleKey\(x\)===key\)/);
+  assert.match(repeat,/同じ条件のactive Repeatが既にあります/);
+  assert.match(repeat,/finally\{saving=false;\$\('saveBtn'\)\.disabled=false;\$\('saveBtn'\)\.textContent='保存'\}/);
+});
+
 test('Master deletion is blocked by inactive Repeat references too',()=>{
   const master=fs.readFileSync('master.html','utf8');
   assert.match(master,/function repeatCount\(id\)\{return repeats\.filter\(r=>r\.master_id===id&&r\.status!=='inactive'\)\.length\}function linkedRepeatCount\(id\)\{return repeats\.filter\(r=>r\.master_id===id\)\.length\}/);
