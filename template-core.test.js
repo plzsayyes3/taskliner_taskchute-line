@@ -29,6 +29,27 @@ test('daily, weekday set, weekly, biweekly, nth weekday, and month-end rules wor
   assert.equal(TL.isRepeatDue({ rule: 'month_end' }, '2026-09-29'), false);
 });
 
+test('repeat schedule identity ignores estimate but preserves distinct schedule slots', () => {
+  const base={master_id:'task_brush',rule:'weekdays',weekdays:[5,1,3,1],section:'7-9',planned_at:'07:15',estimate:5};
+  const same={...base,weekdays:[1,3,5],estimate:30};
+  const later={...base,planned_at:'21:30'};
+  const otherSection={...base,section:'21-24'};
+  assert.equal(TL.repeatScheduleKey(base),TL.repeatScheduleKey(same));
+  assert.notEqual(TL.repeatScheduleKey(base),TL.repeatScheduleKey(later));
+  assert.notEqual(TL.repeatScheduleKey(base),TL.repeatScheduleKey(otherSection));
+});
+
+test('repeat schedule identity includes rule-specific fields', () => {
+  assert.notEqual(
+    TL.repeatScheduleKey({master_id:'task_brush',rule:'weekly',weekday:1,section:'',planned_at:''}),
+    TL.repeatScheduleKey({master_id:'task_brush',rule:'weekly',weekday:2,section:'',planned_at:''})
+  );
+  assert.notEqual(
+    TL.repeatScheduleKey({master_id:'task_brush',rule:'biweekly',anchor_date:'2026-09-30',section:'',planned_at:''}),
+    TL.repeatScheduleKey({master_id:'task_brush',rule:'biweekly',anchor_date:'2026-10-07',section:'',planned_at:''})
+  );
+});
+
 test('one master can generate multiple instances in one day through different repeats', () => {
   const repeats = [
     { id: 'repeat_brush_am', master_id: 'task_brush', status: 'active', rule: 'daily', section: '7-9', planned_at: '07:15' },
