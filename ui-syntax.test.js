@@ -55,6 +55,15 @@ test('Repeat loading never turns collection failures into an empty successful li
   assert.match(repeat,/catch\(e\)\{status\(`読込失敗: \$\{e\.message\}`\);return false\}/);
 });
 
+test('biweekly Repeat derives weekday from its anchor date and rejects a missing anchor',()=>{
+  const repeat=fs.readFileSync('repeat.html','utf8');
+  assert.match(repeat,/function weekdayOfDate\(value\)/);
+  assert.match(repeat,/function syncBiweeklyWeekday\(\)\{if\(\$\('rule'\)\.value!=='biweekly'\)return;const w=weekdayOfDate\(\$\('anchor'\)\.value\);if\(w!==null\)\$\('weekday'\)\.value=String\(w\)\}/);
+  assert.match(repeat,/\$\('anchor'\)\.onchange=syncBiweeklyWeekday/);
+  assert.match(repeat,/\$\('weekday'\)\.readOnly=r==='biweekly'/);
+  assert.match(repeat,/if\(r\.rule==='biweekly'\)\{const anchorWeekday=weekdayOfDate\(r\.anchor_date\);if\(anchorWeekday===null\)\{status\('隔週の基準日を指定してください'\);return\}r\.weekday=anchorWeekday;\$\('weekday'\)\.value=String\(anchorWeekday\)\}/);
+});
+
 test('Repeat Master selection is invalidated when the visible Master text changes',()=>{
   const repeat=fs.readFileSync('repeat.html','utf8');
   assert.match(repeat,/function masterInputChanged\(\)\{\$\('masterId'\)\.value='';\$\('masterLink'\)\.href='\.\/master\.html';suggestions\(\)\}/);
