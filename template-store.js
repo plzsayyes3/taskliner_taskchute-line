@@ -9,7 +9,7 @@ function headers(){const c=cfg(),h={'Accept':'application/vnd.github+json','X-Gi
 function endpoint(path){const c=cfg(),[o,r]=splitRepo(c.repo);return`https://api.github.com/repos/${encodeURIComponent(o)}/${encodeURIComponent(r)}${path}`}
 function decode(text){const bin=atob(String(text||'').replace(/\s/g,'')),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 function encode(text){const bytes=new TextEncoder().encode(text);let bin='';for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin)}
-async function gh(path,options={}){const r=await fetch(endpoint(path),{...options,headers:{...headers(),...(options.headers||{})}});if(r.status===404)return null;if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||`GitHub API ${r.status}`)}return r.status===204?{}:r.json()}
+async function gh(path,options={}){const method=String(options.method||'GET').toUpperCase(),request={...options,headers:{...headers(),...(options.headers||{})}};if(method==='GET')request.cache='no-store';const r=await fetch(endpoint(path),request);if(r.status===404)return null;if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.message||`GitHub API ${r.status}`)}return r.status===204?{}:r.json()}
 function base(){return`${cfg().folder}/templates`}
 function apiPath(path){return`/contents/${path.split('/').map(encodeURIComponent).join('/')}`}
 async function listDir(path){const c=cfg();return await gh(`${apiPath(path)}?ref=${encodeURIComponent(c.branch)}`)||[]}
