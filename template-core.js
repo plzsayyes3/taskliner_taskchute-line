@@ -78,6 +78,14 @@
       default:return false;
     }
   }
+  function repeatScheduleKey(repeat){
+    const r=repeat||{},rule=String(r.rule||'daily'),parts=[String(r.master_id||''),rule,String(r.section||'').trim(),String(r.planned_at||'')];
+    if(rule==='weekdays')parts.push([...new Set((Array.isArray(r.weekdays)?r.weekdays:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=0&&x<=6))].sort((a,b)=>a-b).join(','));
+    else if(rule==='weekly')parts.push(String(r.weekday??''));
+    else if(rule==='biweekly')parts.push(String(r.anchor_date||''));
+    else if(rule==='nth_weekday')parts.push(String(r.weekday??''),String(r.nth??''));
+    return JSON.stringify(parts);
+  }
   function cleanEstimate(value){
     if(value===null||value===undefined||value==='')return null;
     const n=Number(value);return Number.isFinite(n)&&n>=0?Math.round(n):null;
@@ -198,5 +206,5 @@
     const x=frontmatterObject(markdown);
     return{id:String(x.id||''),master_id:String(x.master_id||''),status:String(x.status||'active'),rule:String(x.rule||'daily'),weekdays:Array.isArray(x.weekdays)?x.weekdays.map(Number).filter(Number.isInteger):[],weekday:x.weekday??'',nth:x.nth??'',anchor_date:String(x.anchor_date||''),section:String(x.section||''),planned_at:String(x.planned_at||''),estimate:x.estimate??''};
   }
-  return{norm,displayTitle,findExactMaster,suggestMasters,isRepeatDue,generateDailyInstances,renderInstanceMarkdown,parseHiddenMetadata,ensureMaster,findSimilarMasters,mergeMasterRecords,serializeMaster,serializeRepeat,parseMasterMarkdown,parseRepeatMarkdown,id};
+  return{norm,displayTitle,findExactMaster,suggestMasters,isRepeatDue,repeatScheduleKey,generateDailyInstances,renderInstanceMarkdown,parseHiddenMetadata,ensureMaster,findSimilarMasters,mergeMasterRecords,serializeMaster,serializeRepeat,parseMasterMarkdown,parseRepeatMarkdown,id};
 });
