@@ -40,6 +40,21 @@ test('TaskLiner guards MutationObserver targets before observing',()=>{
   assert.doesNotMatch(html,/const root=document\.getElementById\('tasks'\);if\(root\)new MutationObserver/);
 });
 
+test('template store bypasses browser cache for GitHub GET reads',()=>{
+  const source=fs.readFileSync('template-store.js','utf8');
+  assert.match(source,/if\(method==='GET'\)request\.cache='no-store'/);
+});
+
+test('Repeat save appears immediately and verifies the refreshed GitHub list',()=>{
+  const html=fs.readFileSync('repeat.html','utf8');
+  assert.match(html,/const localIndex=repeats\.findIndex\(x=>x\.id===r\.id\)/);
+  assert.match(html,/if\(localIndex>=0\)repeats\[localIndex\]=saved;else repeats\.push\(saved\)/);
+  assert.match(html,/GitHub保存完了:/);
+  assert.match(html,/const reloaded=await reload\(\),found=repeats\.some\(x=>x\.id===r\.id\)/);
+  assert.match(html,/一覧の再読込だけ失敗しました/);
+  assert.match(html,/保存しました:/);
+});
+
 test('Today keeps template controls in a compact hamburger menu',()=>{
   const html=fs.readFileSync('today.html','utf8');
   assert.match(html,/id="menuToggle"[^>]*aria-controls="menuPanel"/);
