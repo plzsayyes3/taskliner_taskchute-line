@@ -25,6 +25,45 @@ test('planned repeats are inserted before unplanned tasks and sorted by planned_
   assert.ok(english<adhoc);
 });
 
+test('planned task sorting keeps contiguous indented child lines with their parent',()=>{
+  const md=[
+    '## 7-9',
+    '- [ ] 後の親 (5m) <!-- tl:master=b repeat=rb planned=08%3A00 -->',
+    '    後の親メモ',
+    '    - [ ] 後の子タスク',
+    '- [ ] 先の親 (5m) <!-- tl:master=a repeat=ra planned=07%3A00 -->',
+    '    先の親メモ',
+    '    - [ ] 先の子タスク',
+    ''
+  ].join('\n');
+  const out=DI.mergeGeneratedIntoMarkdown(md,[]);
+  const lines=out.split('\n');
+  const early=lines.findIndex(line=>line.includes('先の親 (5m)'));
+  const earlyMemo=lines.findIndex(line=>line.includes('先の親メモ'));
+  const earlyChild=lines.findIndex(line=>line.includes('先の子タスク'));
+  const late=lines.findIndex(line=>line.includes('後の親 (5m)'));
+  const lateMemo=lines.findIndex(line=>line.includes('後の親メモ'));
+  const lateChild=lines.findIndex(line=>line.includes('後の子タスク'));
+  assert.deepEqual([earlyMemo,earlyChild],[early+1,early+2]);
+  assert.deepEqual([lateMemo,lateChild],[late+1,late+2]);
+  assert.ok(earlyChild<late);
+});
+
+test('planned task block sorting works when parents have different child-line counts',()=>{
+  const md=[
+    '## 7-9',
+    '- [ ] B (5m) <!-- tl:master=b repeat=rb planned=08%3A00 -->',
+    '    B child 1',
+    '    B child 2',
+    '- [ ] A (5m) <!-- tl:master=a repeat=ra planned=07%3A00 -->',
+    '    A child',
+    '- [ ] 単発タスク (5m)',
+    ''
+  ].join('\n');
+  const out=DI.mergeGeneratedIntoMarkdown(md,[]);
+  assert.match(out,/A \(5m\)[^\n]*\n    A child\n- \[ \] B \(5m\)[^\n]*\n    B child 1\n    B child 2\n- \[ \] 単発タスク/);
+});
+
 test('missing section is appended without losing existing markdown',()=>{
   const md='## 7-9\n- [ ] 朝食 (5m)';
   const [instance]=TL.generateDailyInstances('2026-09-17',[{id:'m',title:'睡眠',aliases:[],status:'active',estimate:420}],[{id:'r',master_id:'m',status:'active',rule:'daily',section:'21-24',planned_at:'22:30'}],[]);
