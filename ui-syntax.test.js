@@ -55,6 +55,16 @@ test('Repeat loading never turns collection failures into an empty successful li
   assert.match(repeat,/catch\(e\)\{status\(`読込失敗: \$\{e\.message\}`\);return false\}/);
 });
 
+test('Repeat generation refreshes Master and Repeat definitions at click time',()=>{
+  const repeat=fs.readFileSync('repeat.html','utf8');
+  const today=fs.readFileSync('today.html','utf8');
+  assert.match(repeat,/const \[freshMasters,freshRepeats\]=await Promise\.all\(\[S\.pullMasters\(\),S\.loadRepeats\(\)\]\),date=today\(\)/);
+  assert.match(repeat,/DI\.existingInstances\(markdown,freshMasters\)/);
+  assert.match(repeat,/TL\.generateDailyInstances\(date,freshMasters,freshRepeats,existing\)/);
+  assert.match(today,/const \[freshMasters,freshRepeats\]=await Promise\.all\(\[S\.pullMasters\(\),S\.loadRepeats\(\)\]\),existing=DI\.existingInstances\(box\.value,freshMasters\)/);
+  assert.match(today,/TL\.generateDailyInstances\(date,freshMasters,freshRepeats,existing\)/);
+});
+
 test('Repeat explicit reload pulls fresh Master data from GitHub',()=>{
   const repeat=fs.readFileSync('repeat.html','utf8');
   assert.match(repeat,/async function reload\(forceMasters=false\)/);
