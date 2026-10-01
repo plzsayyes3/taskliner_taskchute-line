@@ -84,24 +84,33 @@
     const before=lines.slice(0,sortable[0].start),after=lines.slice(sortable.at(-1).end);
     return[...before,...sorted.flatMap(item=>item.block),...after];
   }
+  function lineIndent(line){
+    const match=String(line||'').match(/^[\t ]*/);
+    return(match?.[0]||'').replace(/\t/g,'    ').length;
+  }
   function sortPlannedTasks(lines){
     const result=[...lines];
     for(let i=0;i<result.length;i++){
       if(!sectionName(result[i]))continue;
       let end=i+1;while(end<result.length&&!sectionName(result[end]))end++;
-      const taskPositions=[];
-      for(let j=i+1;j<end;j++){
-        if(!taskLine(result[j]))continue;
-        const meta=TL.parseHiddenMetadata(result[j]);
-        const inlineTime=(result[j].match(/【\s*(\d{1,2}:\d{2})\s*[-－ー〜~]/)||[])[1]||'';
-        const planned=String(meta.planned_at||inlineTime||'');
-        taskPositions.push({index:j,planned,line:result[j]});
+      const body=result.slice(i+1,end),items=[];
+      for(let j=0;j<body.length;){
+        const line=body[j];
+        if(!taskLine(line)){items.push({type:'raw',lines:[line]});j++;continue}
+        const indent=lineIndent(line),block=[line];
+        j++;
+        while(j<body.length&&String(body[j]).trim()&&lineIndent(body[j])>indent){block.push(body[j]);j++}
+        const meta=TL.parseHiddenMetadata(line);
+        const inlineTime=(line.match(/【\s*(\d{1,2}:\d{2})\s*[-－ー〜~]/)||[])[1]||'';
+        items.push({type:'task',planned:String(meta.planned_at||inlineTime||''),lines:block});
       }
-      const positions=taskPositions.filter(item=>item.planned);
-      if(positions.length<2){i=end-1;continue}
-      const sorted=[...positions].sort((a,b)=>a.planned.localeCompare(b.planned));
-      const ordered=[...sorted,...taskPositions.filter(item=>!item.planned)];
-      taskPositions.forEach((position,index)=>{result[position.index]=ordered[index].line});
+      const tasks=items.filter(item=>item.type==='task'),planned=tasks.filter(item=>item.planned);
+      if(planned.length<2){i=end-1;continue}
+      const ordered=[...planned].sort((a,b)=>a.planned.localeCompare(b.planned)).concat(tasks.filter(item=>!item.planned));
+      let taskIndex=0;
+      const sortedBody=items.flatMap(item=>item.type==='task'?ordered[taskIndex++].lines:item.lines);
+      result.splice(i+1,end-i-1,...sortedBody);
+      end=i+1+sortedBody.length;
       i=end-1;
     }
     return result;
