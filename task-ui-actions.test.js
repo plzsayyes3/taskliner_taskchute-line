@@ -9,9 +9,9 @@ function storage(initial={}){
 
 test('defines the one-character labels for every existing task action',()=>{
   assert.deepEqual(UI.keys.map(x=>[x.key,x.label,x.title]),[
-    ['complete','済','完了'],['start','始','開始'],['end','終','終了'],['time','時','時刻指定'],
+    ['complete','完','完了'],['start','始','開始'],['end','終','終了'],['time','時','時刻指定'],
     ['defer','保','保留'],['tomorrow','翌','翌日'],['previous','前','前回から'],['up','上','上へ'],['down','下','下へ'],
-    ['delete','削','削除'],['more','…','その他']
+    ['delete','削','削除'],['more','他','その他']
   ]);
 });
 

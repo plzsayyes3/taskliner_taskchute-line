@@ -204,7 +204,7 @@ test('app strips hidden TaskLiner metadata from loaded titles',()=>{
 test('app explains where task actions are shown',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/タスクを選ぶと操作が表示されます/);
-  assert.match(html,/その他の操作は「…」から選べます/);
+  assert.match(html,/その他の操作は「他」から選べます/);
   assert.match(html,/操作を選ぶ/);
 });
 
@@ -502,10 +502,16 @@ test('app gives completion actions state-specific meaning',()=>{
   assert.doesNotMatch(html,/const statusAction=/);
 });
 
-test('app exposes completion-only in the overflow menu for pending tasks',()=>{
+test('desktop task overflow uses single-kanji labels without losing accessible names',()=>{
   const html=fs.readFileSync('app.html','utf8');
-  assert.match(html,/function markDone\(id\)/);
-  assert.match(html,/if\(s==='todo'\|\|s==='deferred'\)\{const completion=btn\('完了のみ',\(\)=>markDone\(t\.id\)\)/);
+  const actions=fs.readFileSync('task-ui-actions.js','utf8');
+  assert.match(actions,/\{key:'complete',label:'完',title:'完了'/);
+  assert.match(actions,/\{key:'more',label:'他',title:'その他'/);
+  assert.match(html,/const menuLabels=\{start:'前',end:'時',defer:'留',tomorrow:'翌'\}/);
+  assert.match(html,/const b=btn\(menuLabels\[key\]\|\|def\.label,handler\);b\.title=def\.title;b\.setAttribute\('aria-label',def\.title\)/);
+  assert.match(html,/if\(s==='todo'\|\|s==='deferred'\)\{const completion=btn\('完',\(\)=>markDone\(t\.id\)\)/);
+  assert.match(html,/\.task-more summary\{display:grid;place-items:center;width:30px;min-height:28px;/);
+  assert.match(html,/completion\.title='時刻を記録せず完了';completion\.setAttribute\('aria-label',completion\.title\)/);
 });
 
 test('metadata is serialized by one layer only',()=>{

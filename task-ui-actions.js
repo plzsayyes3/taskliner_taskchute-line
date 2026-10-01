@@ -6,7 +6,7 @@
   'use strict';
   const STORAGE_KEY='taskliner_task_ui_actions_v1';
   const keys=Object.freeze([
-    {key:'complete',label:'済',title:'完了',defaultVisible:false},
+    {key:'complete',label:'完',title:'完了',defaultVisible:false},
     {key:'start',label:'始',title:'開始',defaultVisible:true},
     {key:'end',label:'終',title:'終了',defaultVisible:false},
     {key:'time',label:'時',title:'時刻指定',defaultVisible:true},
@@ -16,7 +16,7 @@
     {key:'up',label:'上',title:'上へ',defaultVisible:false},
     {key:'down',label:'下',title:'下へ',defaultVisible:false},
     {key:'delete',label:'削',title:'削除',defaultVisible:true,required:true},
-    {key:'more',label:'…',title:'その他',defaultVisible:true}
+    {key:'more',label:'他',title:'その他',defaultVisible:true}
   ]);
   const supported=new Set(keys.map(x=>x.key));
   function uniqueSupported(value){
