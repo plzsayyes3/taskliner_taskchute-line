@@ -55,6 +55,15 @@ test('Repeat loading never turns collection failures into an empty successful li
   assert.match(repeat,/catch\(e\)\{status\(`読込失敗: \$\{e\.message\}`\);return false\}/);
 });
 
+test('Repeat explicit reload pulls fresh Master data from GitHub',()=>{
+  const repeat=fs.readFileSync('repeat.html','utf8');
+  assert.match(repeat,/async function reload\(forceMasters=false\)/);
+  assert.match(repeat,/const masterPromise=forceMasters\?S\.pullMasters\(\):S\.loadMasters\(\)/);
+  assert.match(repeat,/\[masters,repeats\]=await Promise\.all\(\[masterPromise,S\.loadRepeats\(\)\]\)/);
+  assert.match(repeat,/\$\('reload'\)\.onclick=\(\)=>reload\(true\)/);
+  assert.match(repeat,/reload\(\)\}\)\(\);<\/script>/);
+});
+
 test('Repeat save blocks double submit and exact active schedule duplicates',()=>{
   const repeat=fs.readFileSync('repeat.html','utf8');
   assert.match(repeat,/id="saveBtn" class="btn primary" type="submit">保存<\/button>/);
