@@ -410,6 +410,12 @@ test('running task end sheet supports manual time, interruption, and estimate-ti
   assert.match(shell,/@media\(max-width:720px\)\{\.taskliner-time-dialog\{position:fixed;inset:auto 0 0 0/);
 });
 
+test('running task row uses the same hold semantics as the mobile running dock',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/addAction\('defer',\(\)=>s==='running'\?holdMobileRunningTask\(t\.id\):deferTask\(t\.id\)\)/);
+  assert.match(html,/function holdMobileRunningTask\(id\)\{if\(typeof holdRunningTask==='function'\)\{holdRunningTask\(id\);return\}deferTask\(id\)\}/);
+});
+
 test('holding a running task records elapsed work and creates a deferred continuation',()=>{
   const shell=fs.readFileSync('taskliner_taskchute-line.html','utf8');
   assert.match(shell,/function holdRunningTask\(id,explicitAt=''\)\{const result=splitRunningTask\(id,explicitAt,true\)/);
