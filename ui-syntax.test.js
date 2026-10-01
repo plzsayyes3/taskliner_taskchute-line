@@ -388,6 +388,12 @@ test('mobile running overflow contains reset, hold, and estimate only',()=>{
   assert.match(html,/fill\.style\.width=`\$\{Math\.min\(100,Math\.max\(0,progress\.percent\)\)\}%`/);
 });
 
+test('running task row offers finish-and-next when another pending task exists',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/const next=findFirstTodoInDocument\(documentNodes,tasks,stateOf,t\.id\);if\(next\)\{const nextAction=btn\('次',\(\)=>advanceRunningTask\(t\.id\)\)/);
+  assert.match(html,/nextAction\.title='終了して次へ';nextAction\.setAttribute\('aria-label','終了して次へ'\);actions\.append\(nextAction\)/);
+});
+
 test('mobile running dock offers an atomic finish-and-start-next action',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/<button id="mobileNextTaskBtn"[^>]*>終了して次へ<\/button>/);
