@@ -427,6 +427,11 @@ test('running task end sheet supports manual time, interruption, and estimate-ti
   assert.match(shell,/@media\(max-width:720px\)\{\.taskliner-time-dialog\{position:fixed;inset:auto 0 0 0/);
 });
 
+test('running task overflow hold uses the same split-and-defer semantics',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/menuAction\('defer',\(\)=>s==='running'\?holdMobileRunningTask\(t\.id\):deferTask\(t\.id\)\)/);
+});
+
 test('running task row uses the same hold semantics as the mobile running dock',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/addAction\('defer',\(\)=>s==='running'\?holdMobileRunningTask\(t\.id\):deferTask\(t\.id\)\)/);
