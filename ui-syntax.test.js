@@ -394,6 +394,17 @@ test('running task row offers finish-and-next when another pending task exists',
   assert.match(html,/nextAction\.title='終了して次へ';nextAction\.setAttribute\('aria-label','終了して次へ'\);actions\.append\(nextAction\)/);
 });
 
+test('running task row mirrors live estimate progress from the mobile dock',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/function createRunningRowProgress\(running\)/);
+  assert.match(html,/function updateRunningRowProgress\(running\)/);
+  assert.match(html,/const rowProgress=s==='running'\?createRunningRowProgress\(t\):null/);
+  assert.match(html,/updateRunningRowProgress\(running\)/);
+  assert.match(html,/残り \$\{progress\.remainingMinutes\}m · \$\{progress\.percent\}%/);
+  assert.match(html,/超過 \$\{progress\.overMinutes\}m · \$\{progress\.percent\}%/);
+  assert.match(html,/\.task-running-progress-track\{height:5px;/);
+});
+
 test('mobile running dock offers an atomic finish-and-start-next action',()=>{
   const html=fs.readFileSync('app.html','utf8');
   assert.match(html,/<button id="mobileNextTaskBtn"[^>]*>終了して次へ<\/button>/);
