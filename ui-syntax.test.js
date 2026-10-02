@@ -488,6 +488,12 @@ test('finish-and-start-next persists the transition only once',()=>{
   assert.equal(next.start,'09:37');
 });
 
+test('running task row exposes estimate change from its overflow menu',()=>{
+  const html=fs.readFileSync('app.html','utf8');
+  assert.match(html,/function promptRunningEstimate\(id\)\{const task=tasks\.find\(item=>item\.id===id\);if\(!task\|\|stateOf\(task\)!=='running'\)return false;const raw=prompt\('見積もり（分）',task\.estimate\?String\(task\.estimate\):''\);if\(raw===null\)return false;return setRunningEstimate\(id,raw\)\}/);
+  assert.match(html,/if\(s==='running'\)\{const estimate=btn\('見',\(\)=>\{details\.open=false;promptRunningEstimate\(t\.id\)\}\);estimate\.title='見積もり変更';estimate\.setAttribute\('aria-label','見積もり変更'\);menu\.append\(estimate\)\}/);
+});
+
 test('running-task estimate can be replaced and invalid input does not save',()=>{
   const task={id:'active',status:'running',estimate:10};
   let saves=0;
